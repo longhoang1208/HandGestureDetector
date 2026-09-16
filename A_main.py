@@ -73,6 +73,9 @@ from PySide6.QtWidgets import QComboBox
 
 from PySide6.QtGui  import QIcon
 from PySide6.QtGui  import QPixmap
+from PySide6.QtGui  import QFont
+
+from PySide6.QtCore import Qt
 
 
 # -------------------------------------------------------------
@@ -154,24 +157,28 @@ class SelectUserPage(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.main_layout = QVBoxLayout(self)
+
         self.user_list = QComboBox()
+        self.user_list.setFont(QFont('Arial', 18))
+        self.user_list.setFixedWidth(300)
+        self.user_list.setEditable(True)
 
         # Hiển thị danh sách 
         os.makedirs(USERS_DIR, exist_ok=True)
         self.user_list.addItems(os.listdir(USERS_DIR))
 
+        # Select user button
         self.select_btn = QPushButton("Select user name")
         self.select_btn.setFixedWidth(button_width)
-        self.select_btn.clicked.connect(self.select_user)
 
-    def select_user(self):
-        if (
-            not self.user_list.currentText() or
-            self.user_list.currentText() not in os.listdir(USERS_DIR)
-        ):
-            self.user_list.setCurrentText("Invalid user name")
-        else:
-            self.user_name = self.user_list.currentText()
+        # Arrange layout
+        self.main_layout.addStretch()
+        self.main_layout.addWidget(self.user_list)
+        self.main_layout.addWidget(self.select_btn)
+        self.main_layout.addStretch()
+
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
 # -------------------------------------------------------------
@@ -184,68 +191,43 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Hand Gesture Detector")
+        self.setWindowTitle("Hand Gesture Detector") # Title
+        self.app_layout = QVBoxLayout(self)          # Layout
+        self.stack = QStackedWidget()                # Widgets Stack
 
-        mainLayout   = QVBoxLayout(self)
-        bottomLayout = QHBoxLayout()
+        self.user_name = ""
 
-        # Buttons
-        home_btn               = QPushButton("Home")
-        module1_btn            = QPushButton("Single Sign")
-        module2_btn            = QPushButton("Multi Signs")
-        collect_module_btn     = QPushButton("Collect Data")
-        train_model_module_btn = QPushButton("Train model")
+        self.select_user_page = SelectUserPage()
+        self.select_user_page.select_btn.clicked.connect(self.select_user)
 
-        home_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(home_page)
-            )
-        )
-        module1_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(module1_window)
-            )
-        )
-        module2_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(module2_window)
-            )
-        )
-        collect_module_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(collect_window)
-            )
-        )
-        train_model_module_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(training_window)
-            )
-        )
+        self.stack.addWidget(self.select_user_page)
 
-        # Align buttons
-        bottomLayout.addWidget(collect_module_btn)
-        bottomLayout.addWidget(train_model_module_btn)
-        bottomLayout.addWidget(home_btn)
-        bottomLayout.addWidget(module1_btn)
-        bottomLayout.addWidget(module2_btn)
+        self.quit_button = QPushButton("Quit")
+        self.quit_button.clicked.connect(self.quit_user)
 
-        # Main window
-        mainWidget = QStackedWidget()
+        self.app_layout.addWidget(self.stack)
+        self.app_layout.addWidget(self.quit_button)
 
-        mainLayout.addWidget(mainWidget)
-        mainLayout.addLayout(bottomLayout)
+    # Select user
+    def select_user(self):
+        if (
+            not self.select_user_page.user_list.currentText() or
+            self.select_user_page.user_list.currentText() not in os.listdir(USERS_DIR)
+        ):
+            self.select_user_page.user_list.setCurrentText("Invalid user name")
+        else:
+            self.user_name = self.select_user_page.user_list.currentText()
 
-        home_page       = HomaPage()
-        module1_window  = Module1()
-        module2_window  = Module2()
-        collect_window  = CollectModule()
-        training_window = TrainingModule()
+        # Debug
+        print("user name: ", self.user_name if self.user_name else "Invalid")
 
-        mainWidget.addWidget(home_page)
-        mainWidget.addWidget(module1_window)
-        mainWidget.addWidget(module2_window)
-        mainWidget.addWidget(collect_window)
-        mainWidget.addWidget(training_window)
+    # Quit user
+    def quit_user(self):
+        self.user_name = ""
+        self.stack.setCurrentWidget(self.select_user_page)
+
+        # Debug
+        print("user name: ", self.user_name if self.user_name else "Invalid")
 
 
 def main():
