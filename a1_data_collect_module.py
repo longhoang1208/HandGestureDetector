@@ -252,8 +252,10 @@ class Interface(QWidget):
 #   - Thu dữ liệu
 # ----------------------------------------------------------
 class CollectModule(Interface):
-    def __init__(self):
+    def __init__(self, user_name):
         super().__init__()
+
+        self.user_name = user_name
 
         # Landmark list
         self.lm_list = []

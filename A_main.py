@@ -60,6 +60,7 @@ from b2_module2_multi_signs   import Module2
 import resources_rc
 import sys
 import os
+import gc
 from pathlib import Path
 
 from PySide6.QtWidgets import QApplication
@@ -156,7 +157,7 @@ class SelectUserPage(QWidget):
         self.main_layout = QVBoxLayout(self)
 
         self.user_list = QComboBox()
-        self.user_list.setFont(QFont('Arial', 18))
+        self.user_list.setFont(QFont('Arial', 16))
         self.user_list.setFixedWidth(300)
         self.user_list.setEditable(True)
 
@@ -196,6 +197,10 @@ class MainWindow(QWidget):
         self.select_user_page = SelectUserPage()
         self.select_user_page.select_btn.clicked.connect(self.select_user)
 
+
+        self.home_page = HomaPage()
+
+
         self.stack.addWidget(self.select_user_page)
 
         self.quit_button = QPushButton("Quit")
@@ -206,24 +211,39 @@ class MainWindow(QWidget):
 
     # Select user
     def select_user(self):
+        self.user_name = self.select_user_page.user_list.currentText()
         if (
-            not self.select_user_page.user_list.currentText() or
-            self.select_user_page.user_list.currentText() not in os.listdir(USERS_DIR)
+            not self.user_name or
+            self.user_name not in os.listdir(USERS_DIR)
         ):
+            self.user_name = ""
             self.select_user_page.user_list.setCurrentText("Invalid user name")
         else:
-            self.user_name = self.select_user_page.user_list.currentText()
+            self.data_collect_page = CollectModule(self.user_name)
+            self.stack.addWidget(self.data_collect_page)
+            self.stack.setCurrentWidget(self.data_collect_page)
 
         # Debug
         print("user name: ", self.user_name if self.user_name else "Invalid")
 
     # Quit user
     def quit_user(self):
+        # Clear user name
         self.user_name = ""
         self.stack.setCurrentWidget(self.select_user_page)
 
+        # Delete existing objects
+        if self.data_collect_page:
+            self.stack.removeWidget(self.data_collect_page)
+            del self.data_collect_page
+        gc.collect()
+
+
+        # Return to the first page (select user)
+        self.stack.setCurrentWidget(self.select_user_page)
+
         # Debug
-        print("user name: ", self.user_name if self.user_name else "Invalid")
+        print("user name cleared")
 
 
 def main():
