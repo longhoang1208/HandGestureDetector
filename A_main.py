@@ -178,43 +178,133 @@ class SelectUserPage(QWidget):
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
-class HomePage(QWidget):
+class HomaPage(QWidget):
+    def __init__(self):
+        super().__init__()
+        home_page_layout = QVBoxLayout(self)
+
+        # WIDGET STACK
+        stack = QStackedWidget()
+
+        # CREATE PAGES
+        num_page = 13
+        pages = {}
+        for i in range(num_page):
+            label = QLabel()
+            label.setPixmap(
+                QPixmap(f":/resources/Slide{i+1}.PNG")
+            )
+            label.setScaledContents(True)
+            pages[i] = QWidget()
+            layout = QVBoxLayout(pages[i])
+            layout.addWidget(label)
+
+            stack.addWidget(pages[i])
+
+        # NEXT PAGE BUTTON
+        next_btn = QPushButton("Next page")
+        next_btn.setFixedWidth(150)
+        next_btn.clicked.connect(
+            lambda: (
+                stack.setCurrentIndex(
+                    stack.currentIndex() + 1
+                    if stack.currentIndex() < num_page - 1
+                    else 0
+                )
+            )
+        )
+
+        # PREVIOUS PAGE BUTTON
+        prev_btn = QPushButton("Previous page")
+        prev_btn.setFixedWidth(150)
+        prev_btn.clicked.connect(
+            lambda: (
+                stack.setCurrentIndex(
+                    stack.currentIndex() - 1
+                    if stack.currentIndex() > 0
+                    else num_page - 1
+                )
+            )
+        )
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(prev_btn)
+        button_layout.addWidget(next_btn)
+        button_layout.addStretch()
+
+        home_page_layout.addWidget(stack)
+        home_page_layout.addLayout(button_layout)
+
+
+class ModulesWindow(QWidget):
     def __init__(self, user_name):
         super().__init__()
 
         self.user_name = user_name
 
-        self.main_layout = QVBoxLayout(self)
+        self.setWindowTitle("Hand Gesture Detector")
 
-        self.stack = QStackedWidget()
+        mainLayout   = QVBoxLayout(self)
+        bottomLayout = QHBoxLayout()
 
-        self.data_collect_page = CollectModule(self.user_name)
-        self.stack.addWidget(self.data_collect_page)
+        # Buttons
+        home_btn               = QPushButton("Home")
+        module1_btn            = QPushButton("Single Sign")
+        module2_btn            = QPushButton("Multi Signs")
+        collect_module_btn     = QPushButton("Collect Data")
+        train_model_module_btn = QPushButton("Train model")
 
-        self.train_page = TrainingModule(self.user_name)
-        self.stack.addWidget(self.train_page)
+        home_btn.clicked.connect(
+            lambda: (
+                mainWidget.setCurrentWidget(home_page)
+            )
+        )
+        module1_btn.clicked.connect(
+            lambda: (
+                mainWidget.setCurrentWidget(module1_window)
+            )
+        )
+        module2_btn.clicked.connect(
+            lambda: (
+                mainWidget.setCurrentWidget(module2_window)
+            )
+        )
+        collect_module_btn.clicked.connect(
+            lambda: (
+                mainWidget.setCurrentWidget(collect_window)
+            )
+        )
+        train_model_module_btn.clicked.connect(
+            lambda: (
+                mainWidget.setCurrentWidget(training_window)
+            )
+        )
 
-        self.module1 = Module1
-        self.stack.addWidget(self.module1)
+        # Align buttons
+        bottomLayout.addWidget(collect_module_btn)
+        bottomLayout.addWidget(train_model_module_btn)
+        bottomLayout.addWidget(home_btn)
+        bottomLayout.addWidget(module1_btn)
+        bottomLayout.addWidget(module2_btn)
 
-        self.module2 = Module2
-        self.stack.addWidget(self.module2)
+        # Main window
+        mainWidget = QStackedWidget()
 
-        self.stack.setCurrentWidget(self.data_collect_page)
+        mainLayout.addWidget(mainWidget)
+        mainLayout.addLayout(bottomLayout)
 
+        home_page       = HomaPage()
+        module1_window  = Module1()
+        module2_window  = Module2()
+        collect_window  = CollectModule(self.user_name)
+        training_window = TrainingModule(self.user_name)
 
-        self.module1_btn = QPushButton("Single Sign")
-        self.module2_btn = QPushButton("Multi Signs")
-        self.collect_btn = QPushButton("Collect Data")
-        self.train_btn   = QPushButton("Train Model")
+        mainWidget.addWidget(home_page)
+        mainWidget.addWidget(module1_window)
+        mainWidget.addWidget(module2_window)
+        mainWidget.addWidget(collect_window)
+        mainWidget.addWidget(training_window)
 
-        self.buttons_layout = QHBoxLayout()
-        self.buttons_layout.addWidget(self.module1_btn)
-        self.buttons_layout.addWidget(self.module2_btn)
-        self.buttons_layout.addWidget(self.collect_btn)
-        self.buttons_layout.addWidget(self.train_btn)
-
-        self.main_layout.addWidget(self.stack)
 
 
 # -------------------------------------------------------------
@@ -254,7 +344,9 @@ class MainWindow(QWidget):
             self.user_name = ""
             self.select_user_page.user_list.setCurrentText("Invalid user name")
         else:
-
+            self.modules_window = ModulesWindow(self.user_name)
+            self.stack.addWidget(self.modules_window)
+            self.stack.setCurrentWidget(self.modules_window)
 
         # Debug
         print("user name: ", self.user_name if self.user_name else "Invalid")
@@ -266,9 +358,9 @@ class MainWindow(QWidget):
         self.stack.setCurrentWidget(self.select_user_page)
 
         # Delete existing objects
-        if self.data_collect_page:
-            self.stack.removeWidget(self.data_collect_page)
-            del self.data_collect_page
+        if self.modules_window:
+            self.stack.removeWidget(self.modules_window)
+            del self.modules_window
         gc.collect()
 
 
