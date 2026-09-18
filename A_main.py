@@ -71,6 +71,7 @@ from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QStackedWidget
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QComboBox
+from PySide6.QtWidgets import QSizePolicy
 
 from PySide6.QtGui  import QIcon
 from PySide6.QtGui  import QPixmap
@@ -84,67 +85,6 @@ from PySide6.QtCore import Qt
 # -------------------------------------------------------------
 USERS_DIR = "Users"
 button_width = 150
-
-
-# -------------------------------------------------------------
-# TUTORIAL PAGE
-# -------------------------------------------------------------
-class TutorialPage(QWidget):
-    def __init__(self):
-        super().__init__()
-        home_page_layout = QVBoxLayout(self)
-
-        # WIDGET STACK
-        stack = QStackedWidget()
-
-        # CREATE PAGES
-        num_page = 13
-        pages = {}
-        for i in range(num_page):
-            label = QLabel()
-            label.setPixmap(
-                QPixmap(f":/resources/Slide{i+1}.PNG")
-            )
-            label.setScaledContents(True)
-            pages[i] = QWidget()
-            layout = QVBoxLayout(pages[i])
-            layout.addWidget(label)
-
-            stack.addWidget(pages[i])
-
-        # NEXT PAGE BUTTON
-        next_btn = QPushButton("Next page")
-        next_btn.setFixedWidth(150)
-        next_btn.clicked.connect(
-            lambda: (
-                stack.setCurrentIndex(
-                    stack.currentIndex() + 1
-                    if stack.currentIndex() < num_page - 1
-                    else 0
-                )
-            )
-        )
-
-        # PREVIOUS PAGE BUTTON
-        prev_btn = QPushButton("Previous page")
-        prev_btn.setFixedWidth(150)
-        prev_btn.clicked.connect(
-            lambda: (
-                stack.setCurrentIndex(
-                    stack.currentIndex() - 1
-                    if stack.currentIndex() > 0
-                    else num_page - 1
-                )
-            )
-        )
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        button_layout.addWidget(prev_btn)
-        button_layout.addWidget(next_btn)
-        button_layout.addStretch()
-
-        home_page_layout.addWidget(stack)
-        home_page_layout.addLayout(button_layout)
 
 
 # -------------------------------------------------------------
@@ -178,7 +118,34 @@ class SelectUserPage(QWidget):
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
-class HomaPage(QWidget):
+class ImageLabel(QLabel):
+    def __init__(self, pixmap: QPixmap):
+        super().__init__()
+
+        self.original_pixmap = pixmap
+
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
+        )
+
+        self.update_pixmap()
+
+    def update_pixmap(self):
+        scaled = self.original_pixmap.scaled(
+            self.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+
+        self.setPixmap(scaled)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_pixmap()
+
+class HomePage(QWidget):
     def __init__(self):
         super().__init__()
         home_page_layout = QVBoxLayout(self)
@@ -190,11 +157,15 @@ class HomaPage(QWidget):
         num_page = 13
         pages = {}
         for i in range(num_page):
-            label = QLabel()
-            label.setPixmap(
+            label = ImageLabel(
                 QPixmap(f":/resources/Slide{i+1}.PNG")
             )
-            label.setScaledContents(True)
+            
+            label.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Expanding
+            )
+
             pages[i] = QWidget()
             layout = QVBoxLayout(pages[i])
             layout.addWidget(label)
@@ -293,7 +264,7 @@ class ModulesWindow(QWidget):
         mainLayout.addWidget(mainWidget)
         mainLayout.addLayout(bottomLayout)
 
-        home_page       = HomaPage()
+        home_page       = HomePage()
         module1_window  = Module1()
         module2_window  = Module2()
         collect_window  = CollectModule(self.user_name)
