@@ -256,6 +256,7 @@ class CollectModule(Interface):
         super().__init__()
 
         self.user_name = user_name
+        self.root_dir = Path("Users") / self.user_name
 
         # Landmark list
         self.lm_list = []
@@ -308,10 +309,8 @@ class CollectModule(Interface):
         if not self.label_file_name:
             pass
 
-        self.label_dir = Path(CFG.labels_dir) / f"{self.label_file_name}.json"
+        self.label_dir = Path(self.root_dir) / CFG.labels_dir / f"{self.label_file_name}.json"
         Path(self.label_dir).parent.mkdir(exist_ok=True)
-
-        self.labels = {}
         
         with open(self.label_dir, "w") as f:
             json.dump(self.labels, f, indent=2)
@@ -353,7 +352,7 @@ class CollectModule(Interface):
     từ camera. Lưu file dữ liệu đã xử lý.
     """
     def run_camera(self):
-        data_save_dir = Path(CFG.data_dir)
+        data_save_dir = Path(self.root_dir) / CFG.data_dir
         data_save_dir.mkdir(parents=True, exist_ok=True)
 
         ret, frame = self.cap.read()
@@ -528,6 +527,8 @@ class CollectModule(Interface):
     def reset(self):
         self.timer.stop()
         self.cap.release()
+
+        self.labels = {}
 
         self.frame_count = 0
         self.frame_count_bar.setValue(0)
