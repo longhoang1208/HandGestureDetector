@@ -87,9 +87,9 @@ button_width = 150
 
 
 # -------------------------------------------------------------
-# HOME PAGE
+# TUTORIAL PAGE
 # -------------------------------------------------------------
-class HomaPage(QWidget):
+class TutorialPage(QWidget):
     def __init__(self):
         super().__init__()
         home_page_layout = QVBoxLayout(self)
@@ -178,6 +178,45 @@ class SelectUserPage(QWidget):
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
+class HomePage(QWidget):
+    def __init__(self, user_name):
+        super().__init__()
+
+        self.user_name = user_name
+
+        self.main_layout = QVBoxLayout(self)
+
+        self.stack = QStackedWidget()
+
+        self.data_collect_page = CollectModule(self.user_name)
+        self.stack.addWidget(self.data_collect_page)
+
+        self.train_page = TrainingModule(self.user_name)
+        self.stack.addWidget(self.train_page)
+
+        self.module1 = Module1
+        self.stack.addWidget(self.module1)
+
+        self.module2 = Module2
+        self.stack.addWidget(self.module2)
+
+        self.stack.setCurrentWidget(self.data_collect_page)
+
+
+        self.module1_btn = QPushButton("Single Sign")
+        self.module2_btn = QPushButton("Multi Signs")
+        self.collect_btn = QPushButton("Collect Data")
+        self.train_btn   = QPushButton("Train Model")
+
+        self.buttons_layout = QHBoxLayout()
+        self.buttons_layout.addWidget(self.module1_btn)
+        self.buttons_layout.addWidget(self.module2_btn)
+        self.buttons_layout.addWidget(self.collect_btn)
+        self.buttons_layout.addWidget(self.train_btn)
+
+        self.main_layout.addWidget(self.stack)
+
+
 # -------------------------------------------------------------
 # MAIN WINDOW
 # -------------------------------------------------------------
@@ -197,10 +236,6 @@ class MainWindow(QWidget):
         self.select_user_page = SelectUserPage()
         self.select_user_page.select_btn.clicked.connect(self.select_user)
 
-
-        self.home_page = HomaPage()
-
-
         self.stack.addWidget(self.select_user_page)
 
         self.quit_button = QPushButton("Quit")
@@ -219,9 +254,7 @@ class MainWindow(QWidget):
             self.user_name = ""
             self.select_user_page.user_list.setCurrentText("Invalid user name")
         else:
-            self.data_collect_page = CollectModule(self.user_name)
-            self.stack.addWidget(self.data_collect_page)
-            self.stack.setCurrentWidget(self.data_collect_page)
+
 
         # Debug
         print("user name: ", self.user_name if self.user_name else "Invalid")
