@@ -16,7 +16,7 @@ from _config  import color
 
 import cv2
 import os
-import os
+from pathlib import Path
 import json
 import tensorflow as tf
 
@@ -30,8 +30,12 @@ COL = color()
 
 
 class Module1(ModuleSetUp):
-    def __init__(self):
+    def __init__(self, user_name):
         super().__init__()
+
+        self.user_name = user_name
+        self.models_dir = Path("Users") / self.user_name / CFG.models_dir
+        self.labels_dir = Path("Users") / self.user_name / CFG.labels_dir
 
         self.camera_page_layout.addWidget(self.cameraLabel)
         self.selection_page_layout.addWidget(QLabel("Single Sign"))
@@ -40,16 +44,13 @@ class Module1(ModuleSetUp):
         self.model_name  = self.model_drop_list.currentText()
         self.labels_file = self.labels_drop_list.currentText()
         
-        labels_path = os.path.join(
-            CFG.labels_dir,
-            self.labels_file
-        )
+        labels_path = Path(self.labels_dir) / self.labels_file
 
         with open(labels_path, "r", encoding="utf-8") as f:
             self.labels = json.load(f)
         
         self.model = tf.keras.models.load_model(
-            os.path.join(CFG.models_dir, self.model_name),
+            Path(self.models_dir) / self.model_name,
             compile=False)
         
         self.timestep = self.model.input_shape[1]

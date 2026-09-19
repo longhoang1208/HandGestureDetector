@@ -145,6 +145,7 @@ class ImageLabel(QLabel):
         super().resizeEvent(event)
         self.update_pixmap()
 
+
 class HomePage(QWidget):
     def __init__(self):
         super().__init__()
@@ -265,8 +266,8 @@ class ModulesWindow(QWidget):
         mainLayout.addLayout(bottomLayout)
 
         home_page       = HomePage()
-        module1_window  = Module1()
-        module2_window  = Module2()
+        module1_window  = Module1(self.user_name)
+        module2_window  = Module2(self.user_name)
         collect_window  = CollectModule(self.user_name)
         training_window = TrainingModule(self.user_name)
 
