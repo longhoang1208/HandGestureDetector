@@ -191,7 +191,6 @@ class CreateUserPage(QWidget):
         self.main_layout.addStretch()
         self.main_layout.addWidget(self.input)
         self.main_layout.addWidget(self.create_btn)
-        self.main_layout.addWidget(self.back_btn)
         self.main_layout.addStretch()
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
@@ -437,7 +436,7 @@ class MainWindow(QWidget):
         self.stack.setCurrentWidget(self.select_user_page)
 
         # Delete existing objects
-        if self.modules_window:
+        if hasattr(self, "modules_window"):
             self.stack.removeWidget(self.modules_window)
             del self.modules_window
         gc.collect()
