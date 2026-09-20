@@ -31,9 +31,8 @@ COL = color()
 
 class Module1(ModuleSetUp):
     def __init__(self, user_name):
-        super().__init__()
+        super().__init__(user_name)
 
-        self.user_name = user_name
         self.models_dir = Path("Users") / self.user_name / CFG.models_dir
         self.labels_dir = Path("Users") / self.user_name / CFG.labels_dir
 

@@ -62,6 +62,7 @@ import sys
 import os
 import gc
 from pathlib import Path
+from _config import config
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtWidgets import QHBoxLayout
@@ -80,11 +81,7 @@ from PySide6.QtGui  import QFont
 from PySide6.QtCore import Qt
 
 
-# -------------------------------------------------------------
-# CONFIGURATIONS
-# -------------------------------------------------------------
-USERS_DIR = "Users"
-button_width = 150
+CFG = config()
 
 
 # -------------------------------------------------------------
@@ -102,12 +99,12 @@ class SelectUserPage(QWidget):
         self.user_list.setEditable(True)
 
         # Hiển thị danh sách 
-        os.makedirs(USERS_DIR, exist_ok=True)
-        self.user_list.addItems(os.listdir(USERS_DIR))
+        os.makedirs(CFG.users_dir, exist_ok=True)
+        self.user_list.addItems(os.listdir(CFG.users_dir))
 
         # Select user button
         self.select_btn = QPushButton("Select user name")
-        self.select_btn.setFixedWidth(button_width)
+        self.select_btn.setFixedWidth(CFG.button_width)
 
         # Arrange layout
         self.main_layout.addStretch()
@@ -198,6 +195,7 @@ class HomePage(QWidget):
                 )
             )
         )
+        
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         button_layout.addWidget(prev_btn)
@@ -289,6 +287,8 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
+        Path(CFG.users_dir).mkdir(parents=True, exist_ok=True)
+
         self.setWindowTitle("Hand Gesture Detector") # Title
         self.app_layout = QVBoxLayout(self)          # Layout
         self.stack = QStackedWidget()                # Widgets Stack
@@ -303,6 +303,9 @@ class MainWindow(QWidget):
         self.quit_button = QPushButton("Quit")
         self.quit_button.clicked.connect(self.quit_user)
 
+        self.display_layout = QHBoxLayout()
+        self.right_layout = QVBoxLayout()
+
         self.app_layout.addWidget(self.stack)
         self.app_layout.addWidget(self.quit_button)
 
@@ -311,11 +314,14 @@ class MainWindow(QWidget):
         self.user_name = self.select_user_page.user_list.currentText()
         if (
             not self.user_name or
-            self.user_name not in os.listdir(USERS_DIR)
+            self.user_name not in os.listdir(CFG.users_dir)
         ):
             self.user_name = ""
             self.select_user_page.user_list.setCurrentText("Invalid user name")
         else:
+            Path(Path(CFG.users_dir) / self.user_name / CFG.models_dir).mkdir(parents=True, exist_ok=True)
+            Path(Path(CFG.users_dir) / self.user_name / CFG.labels_dir).mkdir(parents=True, exist_ok=True)
+
             self.modules_window = ModulesWindow(self.user_name)
             self.stack.addWidget(self.modules_window)
             self.stack.setCurrentWidget(self.modules_window)

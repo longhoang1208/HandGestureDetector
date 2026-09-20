@@ -18,6 +18,7 @@ import time
 import os
 import keras
 import gc
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtCore import QTimer
@@ -326,8 +327,13 @@ class Interface(QWidget):
 
 
 class ModuleSetUp(Interface):
-    def __init__(self):
+    def __init__(self, user_name):
         super().__init__()
+
+        self.user_name = user_name
+        self.models_dir = Path(CFG.users_dir) / self.user_name / CFG.models_dir
+        self.labels_dir = Path(CFG.users_dir) / self.user_name / CFG.labels_dir
+
         self.start_btn.clicked.connect(self.detector_init)
         self.stop_btn.clicked.connect(self.stop_camera)
         
@@ -355,13 +361,13 @@ class ModuleSetUp(Interface):
 
         self.model_drop_list = QComboBox()
         self.model_drop_list.setFixedWidth(200)
-        self.model_drop_list.addItems(os.listdir(CFG.models_dir))
+        self.model_drop_list.addItems(os.listdir(self.models_dir))
         self.model_drop_list.setCurrentText(CFG.model_name)
         self.selection_page_layout.addWidget(self.model_drop_list)
 
         self.labels_drop_list = QComboBox()
         self.labels_drop_list.setFixedWidth(200)
-        self.labels_drop_list.addItems(os.listdir(CFG.labels_dir))
+        self.labels_drop_list.addItems(os.listdir(self.labels_dir))
         self.labels_drop_list.setCurrentText(CFG.labels)
         self.selection_page_layout.addWidget(self.labels_drop_list)
 
