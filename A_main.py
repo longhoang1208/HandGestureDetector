@@ -95,7 +95,8 @@ class SelectUserPage(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.main_layout = QVBoxLayout(self)
+        self.page_layout = QHBoxLayout(self)
+        self.main_layout = QVBoxLayout()
 
         self.user_list = QComboBox()
         self.user_list.setFont(QFont('Arial', 16))
@@ -108,7 +109,11 @@ class SelectUserPage(QWidget):
 
         # Select user button
         self.select_btn = QPushButton("Select user name")
-        self.select_btn.setFixedWidth(CFG.button_width)
+        self.select_btn.setMaximumWidth(CFG.button_width)
+
+        # Create user button
+        self.create_btn = QPushButton("New user")
+        self.create_btn.setMaximumWidth(CFG.button_width)
 
         # Arrange layout
         self.main_layout.addStretch()
@@ -118,13 +123,92 @@ class SelectUserPage(QWidget):
 
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        self.file_model = QFileSystemModel()
+        self.file_model.setFilter(
+            QDir.Filter.AllDirs |
+            QDir.Filter.Files |
+            QDir.Filter.NoDotAndDotDot
+        )
+        self.file_model.setRootPath(CFG.users_dir)
+
+        self.tree = QTreeView()
+        self.tree.setModel(self.file_model)
+        self.tree.setHeaderHidden(True)
+
+        for columns_idx in range(1, self.file_model.columnCount()):
+            self.tree.hideColumn(columns_idx)
+
+        self.tree.setRootIndex(
+            self.file_model.index(CFG.users_dir)
+        )
+        self.tree.setMaximumWidth(150)
+
+        self.right_layout = QVBoxLayout()
+        self.right_layout.addWidget(self.tree)
+        self.right_layout.addWidget(self.create_btn)
+
+        self.page_layout.addLayout(self.main_layout)
+        self.page_layout.addLayout(self.right_layout)
+
 
 class CreateUserPage(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.page_layout = QHBoxLayout(self)
+        self.main_layout = QVBoxLayout()
+
         self.input = QLineEdit()
         self.input.setPlaceholderText("Enter new user name")
+
+        self.create_btn = QPushButton("Create user")
+        self.create_btn.setMaximumWidth(CFG.button_width)
+        self.create_btn.clicked.connect(self.create_user)
+
+        self.file_model = QFileSystemModel()
+        self.file_model.setFilter(
+            QDir.Filter.AllDirs |
+            QDir.Filter.Files |
+            QDir.Filter.NoDotAndDotDot
+        )
+        self.file_model.setRootPath(CFG.users_dir)
+
+        self.tree = QTreeView()
+        self.tree.setModel(self.file_model)
+        self.tree.setHeaderHidden(True)
+
+        for columns_idx in range(1, self.file_model.columnCount()):
+            self.tree.hideColumn(columns_idx)
+
+        self.tree.setRootIndex(
+            self.file_model.index(CFG.users_dir)
+        )
+        self.tree.setMaximumWidth(150)
+
+        self.right_layout = QVBoxLayout()
+        self.right_layout.addWidget(self.tree)
+
+        self.main_layout.addStretch()
+        self.main_layout.addWidget(self.input)
+        self.main_layout.addWidget(self.create_btn)
+        self.main_layout.addWidget(self.back_btn)
+        self.main_layout.addStretch()
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        self.page_layout.addLayout(self.main_layout)
+        self.page_layout.addLayout(self.right_layout)
+
+    def create_user(self):
+        if self.input.text():
+            new_user_name = self.input.text()
+            new_user_dir = Path(CFG.users_dir) / new_user_name
+            Path(new_user_dir).mkdir(parents=True)
+
+            new_user_m_dir = Path(new_user_dir) / CFG.models_dir
+            Path(new_user_m_dir).mkdir(parents=True)
+
+            new_user_l_dir = Path(new_user_dir) / CFG.labels_dir
+            Path(new_user_l_dir).mkdir(parents=True)
 
 
 class ImageLabel(QLabel):
@@ -305,34 +389,20 @@ class MainWindow(QWidget):
         self.setWindowTitle("Hand Gesture Detector") # Title
         self.app_layout = QVBoxLayout(self)          # Layout
 
-        self.select_user_stack = QStackedWidget()
-
         self.user_name = ""
-
-        self.select_user_page = SelectUserPage()
-        self.select_user_page.select_btn.clicked.connect(self.select_user)
 
         self.create_user_page = CreateUserPage()
 
-        self.display_layout = QHBoxLayout()
-        self.display_layout.addWidget(self.select_user_stack)
-        self.right_layout = QVBoxLayout()
-
-        self.file_model = QFileSystemModel()
-        self.file_model.setFilter(
-            QDir.Filter.AllDirs |
-            QDir.Filter.Files |
-            QDir.Filter.NoDotAndDotDot
+        self.select_user_page = SelectUserPage()
+        self.select_user_page.select_btn.clicked.connect(self.select_user)
+        self.select_user_page.create_btn.clicked.connect(
+            lambda: (
+                self.stack.setCurrentWidget(self.create_user_page)
+            )
         )
-        self.tree = QTreeView()
-        self.tree.setModel(self.file_model)
-        self.tree.setHeaderHidden(True)
 
-        for columns_idx in range(1, self.file_model.columnCount()):
-            self.tree.hideColumn(columns_idx)
-
-        self.select_user_stack.addWidget(self.select_user_page)
-        self.select_user_stack.addWidget(self.create_user_page)
+        self.stack.addWidget(self.select_user_page)
+        self.stack.addWidget(self.create_user_page)
 
         self.quit_button = QPushButton("Quit")
         self.quit_button.clicked.connect(self.quit_user)
