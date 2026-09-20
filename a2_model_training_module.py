@@ -42,6 +42,7 @@ from _config import config as cf
 from PySide6.QtCore import QThread
 from PySide6.QtCore import Signal
 from PySide6.QtCore import Qt
+from PySide6.QtCore import QFileSystemWatcher
 
 from PySide6.QtGui import QPixmap
 
@@ -396,15 +397,14 @@ class TrainingModule(QWidget):
         self.model_name_input.setFixedWidth(200)
         self.model_name_input.setPlaceholderText("Enter your model name")
 
-        # Nút tải lại để cập nhật các file bộ nhãn mới
-        self.refresh_btn = QPushButton("Refresh")
-        self.refresh_btn.setFixedWidth(90)
-        self.refresh_btn.clicked.connect(self.refresh_label_list)
-
         # Nút xác nhận bộ nhãn và tên model
         self.confirm_btn = QPushButton("Confirm")
         self.confirm_btn.setFixedWidth(90)
         self.confirm_btn.clicked.connect(self.confirm_MnL)
+
+        self.watcher = QFileSystemWatcher()
+        self.watcher.addPath(str(self.labels_dir))
+        self.watcher.directoryChanged.connect(self.refresh_label_list)
 
         # Sắp xếp bố cục trang
         self.MnL_page_layout.addStretch()
@@ -412,7 +412,6 @@ class TrainingModule(QWidget):
         self.MnL_page_layout.addWidget(self.labels_drop_list)
         self.MnL_page_layout.addWidget(QLabel("Name your model"))
         self.MnL_page_layout.addWidget(self.model_name_input)
-        self.MnL_page_layout.addWidget(self.refresh_btn)
         self.MnL_page_layout.addWidget(self.confirm_btn)
         self.MnL_page_layout.addStretch()
 
@@ -498,8 +497,10 @@ class TrainingModule(QWidget):
 
     # Tải lại để cập nhật các file bộ nhãn mới
     def refresh_label_list(self):
+        self.labels_drop_list.blockSignals(True)
         self.labels_drop_list.clear()
         self.labels_drop_list.addItems(os.listdir(self.labels_dir))
+        self.labels_drop_list.blockSignals(False)
 
     # Xác nhận bộ nhãn và tên model
     def confirm_MnL(self):
