@@ -73,7 +73,11 @@ from PySide6.QtWidgets import QStackedWidget
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QComboBox
 from PySide6.QtWidgets import QSizePolicy
+from PySide6.QtWidgets import QTreeView
+from PySide6.QtWidgets import QLineEdit
+from PySide6.QtWidgets import QFileSystemModel
 
+from PySide6.QtCore import QDir
 from PySide6.QtGui  import QIcon
 from PySide6.QtGui  import QPixmap
 from PySide6.QtGui  import QFont
@@ -113,6 +117,14 @@ class SelectUserPage(QWidget):
         self.main_layout.addStretch()
 
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+
+class CreateUserPage(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.input = QLineEdit()
+        self.input.setPlaceholderText("Enter new user name")
 
 
 class ImageLabel(QLabel):
@@ -289,22 +301,41 @@ class MainWindow(QWidget):
 
         Path(CFG.users_dir).mkdir(parents=True, exist_ok=True)
 
+        self.stack = QStackedWidget()
         self.setWindowTitle("Hand Gesture Detector") # Title
         self.app_layout = QVBoxLayout(self)          # Layout
-        self.stack = QStackedWidget()                # Widgets Stack
+
+        self.select_user_stack = QStackedWidget()
 
         self.user_name = ""
 
         self.select_user_page = SelectUserPage()
         self.select_user_page.select_btn.clicked.connect(self.select_user)
 
-        self.stack.addWidget(self.select_user_page)
+        self.create_user_page = CreateUserPage()
+
+        self.display_layout = QHBoxLayout()
+        self.display_layout.addWidget(self.select_user_stack)
+        self.right_layout = QVBoxLayout()
+
+        self.file_model = QFileSystemModel()
+        self.file_model.setFilter(
+            QDir.Filter.AllDirs |
+            QDir.Filter.Files |
+            QDir.Filter.NoDotAndDotDot
+        )
+        self.tree = QTreeView()
+        self.tree.setModel(self.file_model)
+        self.tree.setHeaderHidden(True)
+
+        for columns_idx in range(1, self.file_model.columnCount()):
+            self.tree.hideColumn(columns_idx)
+
+        self.select_user_stack.addWidget(self.select_user_page)
+        self.select_user_stack.addWidget(self.create_user_page)
 
         self.quit_button = QPushButton("Quit")
         self.quit_button.clicked.connect(self.quit_user)
-
-        self.display_layout = QHBoxLayout()
-        self.right_layout = QVBoxLayout()
 
         self.app_layout.addWidget(self.stack)
         self.app_layout.addWidget(self.quit_button)
