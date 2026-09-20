@@ -384,7 +384,7 @@ class ModuleSetUp(Interface):
         self.model_drop_list.blockSignals(True)
         self.model_drop_list.clear()
         self.model_drop_list.addItems(
-            os.listdir(CFG.models_dir)
+            os.listdir(self.models_dir)
         )
         if CFG.model_name in os.listdir(self.models_dir):
             self.model_drop_list.setCurrentText(CFG.model_name)
