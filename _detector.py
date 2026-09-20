@@ -22,6 +22,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtCore import QTimer
+from PySide6.QtCore import QFileSystemWatcher
 from PySide6.QtGui  import QImage
 from PySide6.QtGui  import QPixmap
 from PySide6.QtGui  import QFont
@@ -371,26 +372,35 @@ class ModuleSetUp(Interface):
         self.labels_drop_list.setCurrentText(CFG.labels)
         self.selection_page_layout.addWidget(self.labels_drop_list)
 
-        self.refresh_btn = QPushButton("Refresh")
-        self.refresh_btn.setFixedWidth(CFG.button_width)
+        self.refresh_m_l()
 
-        self.refresh_btn.clicked.connect(
-            lambda: (
-                self.model_drop_list.clear(),
-                self.model_drop_list.addItems(
-                    os.listdir(CFG.models_dir)
-                ),
-                self.model_drop_list.setCurrentText(CFG.model_name),
-
-                self.labels_drop_list.clear(),
-                self.labels_drop_list.addItems(
-                    os.listdir(CFG.labels_dir)
-                ),
-                self.labels_drop_list.setCurrentText(CFG.labels)
-            )
-        )
-        self.selection_page_layout.addWidget(self.refresh_btn)
+        self.watcher = QFileSystemWatcher()
+        self.watcher.addPaths([str(self.labels_dir), str(self.models_dir)])
+        self.watcher.directoryChanged.connect(self.refresh_m_l)
         self.selection_page_layout.addStretch()
+
+
+    def refresh_m_l(self, changed_path=None):
+        self.model_drop_list.blockSignals(True)
+        self.model_drop_list.clear()
+        self.model_drop_list.addItems(
+            os.listdir(CFG.models_dir)
+        )
+        if CFG.model_name in os.listdir(self.models_dir):
+            self.model_drop_list.setCurrentText(CFG.model_name)
+
+        self.model_drop_list.blockSignals(False)
+
+        self.labels_drop_list.blockSignals(True)
+        self.labels_drop_list.clear()
+        self.labels_drop_list.addItems(
+            os.listdir(self.labels_dir)
+        )
+        if CFG.labels in os.listdir(self.labels_dir):
+            self.labels_drop_list.setCurrentText(CFG.labels)
+
+        self.labels_drop_list.blockSignals(False)
+
 
     def prob_bar(self, top_idx: int = 3):
         if self.detector.probs is None:

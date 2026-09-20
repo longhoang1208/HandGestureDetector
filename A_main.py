@@ -78,6 +78,7 @@ from PySide6.QtWidgets import QLineEdit
 from PySide6.QtWidgets import QFileSystemModel
 
 from PySide6.QtCore import QDir
+from PySide6.QtCore import QFileSystemWatcher
 from PySide6.QtGui  import QIcon
 from PySide6.QtGui  import QPixmap
 from PySide6.QtGui  import QFont
@@ -104,8 +105,12 @@ class SelectUserPage(QWidget):
         self.user_list.setEditable(True)
 
         # Hiển thị danh sách 
-        os.makedirs(CFG.users_dir, exist_ok=True)
-        self.user_list.addItems(os.listdir(CFG.users_dir))
+        Path(CFG.users_dir).mkdir(parents=True, exist_ok=True)
+        self.refresh_users()
+
+        self.watcher = QFileSystemWatcher(self)
+        self.watcher.addPath(CFG.users_dir)
+        self.watcher.directoryChanged.connect(self.refresh_users)
 
         # Select user button
         self.select_btn = QPushButton("Select user name")
@@ -149,6 +154,12 @@ class SelectUserPage(QWidget):
 
         self.page_layout.addLayout(self.main_layout)
         self.page_layout.addLayout(self.right_layout)
+
+    def refresh_users(self, changed_path=None):
+        self.user_list.blockSignals(True)
+        self.user_list.clear()
+        self.user_list.addItems(os.listdir(CFG.users_dir))
+        self.user_list.blockSignals(False)
 
 
 class CreateUserPage(QWidget):
