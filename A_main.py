@@ -113,7 +113,7 @@ class SelectUserPage(QWidget):
 
         # Create user button
         self.create_btn = QPushButton("New user")
-        self.create_btn.setMaximumWidth(CFG.button_width)
+        self.create_btn.setMaximumWidth(200)
 
         # Arrange layout
         self.main_layout.addStretch()
@@ -141,7 +141,7 @@ class SelectUserPage(QWidget):
         self.tree.setRootIndex(
             self.file_model.index(CFG.users_dir)
         )
-        self.tree.setMaximumWidth(150)
+        self.tree.setMaximumWidth(200)
 
         self.right_layout = QVBoxLayout()
         self.right_layout.addWidget(self.tree)
@@ -160,6 +160,7 @@ class CreateUserPage(QWidget):
 
         self.input = QLineEdit()
         self.input.setPlaceholderText("Enter new user name")
+        self.input.setMaximumSize(CFG.inputSize[0], CFG.inputSize[1])
 
         self.create_btn = QPushButton("Create user")
         self.create_btn.setMaximumWidth(CFG.button_width)
@@ -183,7 +184,7 @@ class CreateUserPage(QWidget):
         self.tree.setRootIndex(
             self.file_model.index(CFG.users_dir)
         )
-        self.tree.setMaximumWidth(150)
+        self.tree.setMaximumWidth(200)
 
         self.right_layout = QVBoxLayout()
         self.right_layout.addWidget(self.tree)
