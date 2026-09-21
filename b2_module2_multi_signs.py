@@ -1,43 +1,55 @@
-# ==================================================
-# SINGLE SIGN MODULE
-# ==================================================
-# File name   : b2_module2_multi_signs.py
-# Description : Module nhận diện chuỗi cử chỉ.
-# --------------------------------------------------
 
-
-from _tts_module import speaker_init
-from _detector import ModuleSetUp
-from _detector import Detector
-from _landmark import draw_landmarks
-from _config  import config
-from _config  import color
 
 import cv2
-import time
-import os
-import json
+from _detector import Detector, draw_landmarks
 import tensorflow as tf
+import json
+import time
+from _tts_module import speaker_init, delete_speaker, audio_state, stop_thread
+from _draw_ui_module import draw_ui, clear_terminal, write_on_frame, draw_multi_bars
+import os
+from _write_text_vi import draw_text
+from _select_model_n_labels import list_models, select_model, list_labels, select_labels
+import argparse
+from _configurations import config, color, ANSI_code, ui_cfg
 
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QLabel
-from PySide6.QtWidgets import QPushButton
-from PySide6.QtWidgets import QHBoxLayout
+
+CFG  = config()
+COL  = color()
+ANSI = ANSI_code()
+UI_CFG = ui_cfg()
 
 
-CFG = config()
-COL = color()
+title = rf"""{ANSI.CYAN}
+███╗    ███╗██╗   ██╗██╗  ████████╗██╗
+████╗  ████║██║   ██║██║  ╚══██╔══╝██║
+██╔██╗██╔██║██║   ██║██║     ██║   ██║
+██║╚███╔╝██║██║   ██║██║     ██║   ██║
+██║ ╚══╝ ██║╚██████╔╝███████║██║   ██║
+╚═╝      ╚═╝ ╚═════╝ ╚══════╝╚═╝   ╚═╝
+
+███████╗██╗ ██████╗ ███╗   ██╗
+██╔════╝██║██╔════╝ ████╗  ██║
+███████╗██║██║  ███╗██╔██╗ ██║
+╚════██║██║██║   ██║██║╚██╗██║
+███████║██║ ██████╔╝██║ ╚████║
+╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+{ANSI.RESET}
+"""
 
 
 class SequenceModule:
-    def __init__(self, detector):
+    def __init__(self, dur, detector):
         self.detector = detector
         self.gloss_list = []
         self.gloss = ""
+        self.init_len = 0
+        self.set_time = 0
+        self.dur = dur
 
         self.last_spoke = ""
         self.speak = ""
-        self.confirmed = False
+    
 
     def make_gloss_seq(self):
         merged = []
@@ -74,8 +86,24 @@ class SequenceModule:
         if not self.gloss_list or text != self.gloss_list[-1]:
             self.gloss_list.append(text)
 
-    def collect(self, frame, timestep, qlabel: QLabel):
+    def collect(self, frame, timestep):
+        h, w = frame.shape[:2]
+        def_w, def_h = UI_CFG.default_frame_size
+
+        # scale
+        sx = w/def_w
+        sy = h/def_h
+
+        scale = min(sx, sy)
+
         frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        cv2.rectangle(
+            frame,
+            (0, 0),
+            (frame.shape[1],int(120*sy)),
+            (25, 25, 25), -1
+        )
 
         self.detector.hand_results = self.detector.hands.process(frameRGB)
         self.detector.pose_results = self.detector.pose.process(frameRGB)
@@ -85,108 +113,194 @@ class SequenceModule:
                        self.detector.hand_results,
                        self.detector.pose_results
                     )
+        write_on_frame(frame, text)
+        draw_multi_bars(frame,
+                        self.detector,
+                        self.detector.labels
+                    )
 
         self.get_gloss(text)
         self.gloss = self.make_gloss_seq()
         self.speak = self.make_gloss_seq()
 
-        qlabel.setText(self.gloss)
+        if self.init_len != len(self.gloss):
+            self.init_len = len(self.gloss)
+            self.set_time = time.time() + self.dur
+        else:
+            if time.time() <= self.set_time:
+                draw_text(
+                    frame, self.gloss,
+                    (int(30*sx), int(60*sy)), 45 * scale,
+                    COL.WHITE
+                )
+
+            elif time.time() > self.set_time + 5.0:
+                self.gloss = ""
+                self.gloss_list.clear()
+                self.speak = ""
+                self.last_spoke = ""
 
 
-class Module2(ModuleSetUp):
-    def __init__(self):
-        super().__init__()
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=CFG.model_name,
+        choices=[model_name for model_name in os.listdir(CFG.models_dir)]
+    )
+    parser.add_argument(
+        "--labels",
+        type=str,
+        default=CFG.labels,
+        choices=[labels_file for labels_file in os.listdir(CFG.labels_dir)]
+    )
 
-        _text = QLabel("Text: ")
-        _text.setFixedHeight(30)
+    return parser.parse_args()
 
-        font = QFont("Arial", 16)
-        font.setBold(True)
 
-        self.text_bar = QLabel()
-        self.text_bar.setFont(font)
-        self.text_bar.setFixedHeight(15)
+def main():
+    frame_size = (800, 450)
 
-        btn_layout = QHBoxLayout()
+    args = parse_args()
+    labels_file = args.labels
+    labels = os.path.join(
+        CFG.labels_dir,
+        labels_file
+    )
 
-        confirm_btn = QPushButton("Confirm")
-        confirm_btn.setFixedWidth(CFG.button_width)
-        confirm_btn.clicked.connect(self.confirm)
+    with open(labels, "r", encoding="utf-8") as f:
+        labels = json.load(f)
+    
+    model_list = os.listdir(CFG.models_dir)
+    labels_list = os.listdir(CFG.labels_dir)
+    
+    model_name = args.model
+    model = tf.keras.models.load_model(
+        os.path.join(CFG.models_dir, model_name),
+        compile=False
+    )
+    
+    detector = Detector(model, labels)
+    detector._camera_init(frame_size)
+    cap = detector.cap
 
-        clear_btn = QPushButton("Clear")
-        clear_btn.setFixedWidth(CFG.button_width)
-        clear_btn.clicked.connect(self.clear)
+    timestep = model.input_shape[1]
+    collector = SequenceModule(dur=8.0, detector=detector)
 
-        btn_layout.addWidget(clear_btn)
-        btn_layout.addWidget(confirm_btn)
-        btn_layout.addStretch()
+    is_detecting = True
+    speaker_thread = None
+    use_audio = False
 
-        self.camera_page_layout.addWidget(_text)
-        self.camera_page_layout.addWidget(self.text_bar)
-        self.camera_page_layout.addLayout(btn_layout)
-        self.camera_page_layout.addWidget(self.cameraLabel)
-        self.selection_page_layout.addWidget(QLabel("Multi Signs"))
+    clear_terminal()
 
-    def clear(self):
-        self.collector.gloss = ""
-        self.collector.gloss_list.clear()
-        self.collector.speak = self.collector.last_spoke = ""
+    print(title)
 
-    def confirm(self):
-        self.collector.confirmed = True
+    print(f"\n{ANSI.GREEN}✔  Load{ANSI.RESET}: {ANSI.YELLOW}{model_name}{ANSI.RESET}")
+    print(f"{ANSI.GREEN}✔  Load{ANSI.RESET}: {ANSI.YELLOW}{labels_file}{ANSI.RESET}\n")
 
-    def detector_init(self):
-        self.model_name  = self.model_drop_list.currentText()
-        self.labels_file = self.labels_drop_list.currentText()
+    while True:
+        if is_detecting:
+            ret, frame = cap.read()
+            if not ret:
+                print("Can't read frame from camera")
+                break
+            frame = cv2.flip(frame, 1)
+            collector.collect(frame, timestep)
+
+            draw_ui(
+                frame,
+                model_name,
+                collector.detector.hand_results,
+                'Press "A" to use audio    |    Press ESC to quit',
+            )
+            audio_state(frame, use_audio)
+            
+            cv2.imshow("HandSignDetector", frame)
+
+        else:
+            cap.release()
+            cv2.destroyAllWindows()
+
+            detector.reset()
+
+            if speaker_thread:
+                delete_speaker(speaker_thread)
+                speaker_thread = None
+                use_audio = False
+
+            clear_terminal()
+            print(title)
+
+            # Change model and labels
+            list_models(model_list)
+            model_name = select_model(model_list)
+
+            if model_name:
+                list_labels(labels_list)
+                labels_file = select_labels(labels_list)
+
+                if labels_file:
+                    model = tf.keras.models.load_model(
+                        os.path.join(CFG.models_dir, model_name),
+                        compile=False)
+                    
+                    labels = os.path.join(
+                        CFG.labels_dir,
+                        labels_file
+                    )
+
+                    with open(labels, "r", encoding="utf-8") as f:
+                        labels = json.load(f)
+
+                    timestep = model.input_shape[1]
+                    detector = Detector(model, labels)
+
+                    detector._camera_init(frame_size)
+                    cap = detector.cap
+
+                    collector = SequenceModule(dur=8.0, detector=detector)
+
+                    is_detecting = True
+
+                    clear_terminal()
+
+                    print(title)
+
+                    list_models(model_list)
+                    print(f"{ANSI.GREEN}✔  Load{ANSI.RESET}: {ANSI.YELLOW}{model_name}{ANSI.RESET}\n")
+
+                    list_labels(labels_list)
+                    print(f"{ANSI.GREEN}✔  Load{ANSI.RESET}: {ANSI.YELLOW}{labels_file}{ANSI.RESET}\n")
+
+
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord(" "):
+            is_detecting = not is_detecting
+
+        if key == 27:
+            break
         
-        labels = os.path.join(
-            CFG.labels_dir,
-            self.labels_file
-        )
+        if key == ord("a"):
+            use_audio = not use_audio
 
-        with open(labels, "r", encoding="utf-8") as f:
-            self.labels = json.load(f)
+        if use_audio and speaker_thread is None:
+            stop_thread.clear()
+
+            try:
+                speaker_thread = speaker_init(collector)
+                speaker_thread.start()
+
+            except Exception as e:
+                print(f"Error: {e}")
         
-        self.model = tf.keras.models.load_model(
-            os.path.join(CFG.models_dir, self.model_name),
-            compile=False)
-        
-        self.timestep = self.model.input_shape[1]
-        self.detector = Detector(self.model, self.labels)
-        self.detector._camera_init(self.frame_size)
-        self.cap = self.detector.cap
+        elif not use_audio and not stop_thread.is_set():
+            if speaker_thread:
+                delete_speaker(speaker_thread)
+                speaker_thread = None
+    
+    detector.cap.release()
+    cv2.destroyAllWindows()
 
-        self.collector = SequenceModule(detector=self.detector)
-
-        self.stack.setCurrentWidget(self.camera_page)
-
-        self.speaker_thread = speaker_init(self.collector, self.aud_btn)
-        self.speaker_thread.start()
-
-        self.timer.start(30)
-        self.start_btn.setDisabled(True)
-        self.stop_btn.setEnabled(True)
-
-    def update_frame(self, frame):
-        return super().update_frame(frame)
-
-    def read_frame(self):
-        ret, frame = self.cap.read()
-        if not ret:
-            print("Can't read frame from camera")
-            return
-        frame = cv2.flip(frame, 1)
-        
-        self.collector.collect(frame, self.timestep, self.text_bar)
-
-        self.lbPredict.setText(f"Prediction: {self.detector.final_label}")
-        self.lbConfidence.setText(f"Confidence: {self.detector.confidence:.2f}")
-
-        # FPS
-        current_time = time.perf_counter()
-        fps = 1.0 / (current_time - self.prev_time)
-        self.prev_time = current_time
-
-        self.FPS.setText(f"FPS: {fps:.1f}")
-
-        self.update_frame(frame)
+if __name__=="__main__":
+    main()

@@ -1,560 +1,446 @@
-# ==================================================
-# DATA COLLECT MODULE
-# ==================================================
-# File name   : a1_data_collect_module.py
-# Description : module thu thập dữ liệu
-#               huấn luyện mô hình.
-# 
-# --------------------------------------------------
-# CẤU TRÚC TỔ CHỨC DỮ LIỆU
-# --------------------------------------------------
-# data/
-# │
-# ├── processed/        <- dữ liệu để huấn luyện
-# │   ├── Xin chào/     <- tên nhãn
-# │   │   ├── 0.npy     <- video mẫu
-# │   │   ├── 1.npy
-# │   │   └── ...
-# │   └── ...
-# │
-# └── training_plot/    <- biểu đồ
-#     ├── training_plot.png     <- accuracy, loss
-#     └── confusion_matrix.png  <- ma trận nhầm lẫn
-# --------------------------------------------------
 
 
-from _detector import DetectorConfigurations
-from _landmark import extract_landmarks
-from _landmark import draw_landmarks
-from _landmark import lm_shape
-from _config   import config
-from _config   import color
+"""
+══════════════════════════════════════════════════════
+DATA COLLECT MODULE
+══════════════════════════════════════════════════════
+
+Module thu thập dữ liệu để huấn luyện mô hình.
+
+1 - Tạo thư mục để lưu dữ liệu.
+
+2 - Tạo khung input để người dùng
+    nhập các nhãn muốn sử dụng.
+
+3 - Lưu các nhãn theo thứ tự vào một
+    file json trong thư mục labels.
+
+4 - Mở cửa sổ camera, người dùng nhấn
+    phím cách để thực hiện ký hiệu
+    trước camera để bắt đầu thu thập 
+    dữ liệu.
+
+5 - In bảng tổng kết quá trình thu
+    data: các nhãn và số chuỗi đã
+    lưu.
+
+Thư mục data gồm 2 thư mục con:
+    processed: dữ liệu đã xử lý và có
+               thể đưa vào huấn luyện.
+
+    training plot: lưu biểu đồ đánh
+                   giá quá trình huấn
+                   luyện và confusion
+                   matrix.
+"""
+
 
 import cv2
-import mediapipe as mp
+from _detector import Detector, draw_landmarks
 import numpy as np
-import json
-import os
 from pathlib import Path
-
-from PySide6.QtCore import Qt
-from PySide6.QtCore import QTimer
-from PySide6.QtGui  import QPixmap
-from PySide6.QtGui  import QImage
-from PySide6.QtGui  import QFont
-
-from PySide6.QtWidgets import QLabel
-from PySide6.QtWidgets import QPushButton
-from PySide6.QtWidgets import QWidget
-from PySide6.QtWidgets import QProgressBar
-from PySide6.QtWidgets import QHBoxLayout
-from PySide6.QtWidgets import QVBoxLayout
-from PySide6.QtWidgets import QLineEdit
-from PySide6.QtWidgets import QSpinBox
-from PySide6.QtWidgets import QStackedWidget
+from _draw_ui_module import draw_ui, clear_terminal
+from _landmark_module import extract_landmarks
+from _write_text_vi import draw_text
+import json
+import time
+from _configurations import color
 
 
-COL    = color()
-CFG    = config()
-Dt_CFG = DetectorConfigurations()
+data_dir = "data"
+default_num_samples = 20
+
+COL = color()
 
 
-class Interface(QWidget):
-    def __init__(self):
-        super().__init__()
+def get_labels(labels_dir):
+    labels = {}
+    is_labeling = True
+    index = 0
 
-        self.mainLayout    = QHBoxLayout(self)
-        self.camera_layout = QVBoxLayout()
-        self.right_layout  = QVBoxLayout()
-
-        # Setup pages
-        self.stack = QStackedWidget()
-        self.mainLayout.addWidget(self.stack)
-
-        # ---------------------------------------
-        # TRANG 1 - TẠO FILE LƯU BỘ NHÃN
-        # ---------------------------------------
-        # Khởi tạo trang
-        self.page_create_file = QWidget()
-        self.page_create_file_layout = QVBoxLayout(self.page_create_file)
-
-        # Đặt tên cho file bộ nhãn
-        self.label_name_input = QLineEdit()
-        self.label_name_input.setFixedSize(
-            CFG.inputSize[0],
-            CFG.inputSize[1]
-        )
-        self.label_name_input.setPlaceholderText("Enter label file name")
-
-        # Lưu file bộ nhãn lần đầu tiên tạo
-        self.save_label_file_btn1 = QPushButton("Save file")
-        self.save_label_file_btn1.setFixedWidth(CFG.button_width)
-
-        # Sắp xếp bố cục trang
-        self.page_create_file_layout.addStretch()
-        self.page_create_file_layout.addWidget(self.label_name_input)
-        self.page_create_file_layout.addWidget(self.save_label_file_btn1)
-        self.page_create_file_layout.addStretch()
-
-
-        # ---------------------------------------
-        # TRANG 2 - GHI NHÃN
-        # ---------------------------------------
-        # Khởi tạo trang
-        self.page_labeling = QWidget()
-        self.page_labeling_layout = QVBoxLayout(self.page_labeling)
-
-        # Nhập nhãn
-        self.label_input = QLineEdit()
-        self.label_input.setFixedSize(
-            CFG.inputSize[0],
-            CFG.inputSize[1]
-        )
-        self.label_input.setPlaceholderText("Enter your label")
-
-        # Xác nhận ghi nhãn
-        self.confirm_lb_btn = QPushButton("Confirm")
-        self.confirm_lb_btn.setFixedWidth(CFG.button_width)
-
-        # Lưu file bộ nhãn sau khi ghi nhãn xong
-        self.save_label_file_btn2 = QPushButton("Save file")
-        self.save_label_file_btn2.setFixedWidth(CFG.button_width)
-
-        # Sắp xếp bố cục trang
-        self.page_labeling_layout.addStretch()
-        self.page_labeling_layout.addWidget(self.label_input)
-        self.page_labeling_layout.addWidget(self.confirm_lb_btn)
-        self.page_labeling_layout.addWidget(self.save_label_file_btn2)
-        self.page_labeling_layout.addStretch()
-
-
-        # ---------------------------------------
-        # TRANG 3 - CHỌN SỐ LƯỢNG MẪU
-        # ---------------------------------------
-        # Khởi tạo trang
-        self.page_num_sample = QWidget()
-        self.page_num_sample_layout = QVBoxLayout(self.page_num_sample)
-
-        # Select number of samples
-        self.num_sample_select = QSpinBox()
-        self.num_sample_select.setMinimum(CFG.minNumSample)
-        self.num_sample_select.setMaximum(CFG.maxNumSample)
-        self.num_sample_select.setValue(CFG.minNumSample)
-
-        self.num_sample_select.setFixedSize(100, 50)
-
-        # Xác nhận số lượng mẫu
-        self.num_samp_confirm_btn = QPushButton("Confirm")
-        self.num_samp_confirm_btn.setFixedWidth(CFG.button_width)
-
-        # Sắp xếp bố cục trang
-        self.page_num_sample_layout.addStretch()
-        self.page_num_sample_layout.addWidget(self.num_sample_select)
-        self.page_num_sample_layout.addWidget(self.num_samp_confirm_btn)
-        self.page_num_sample_layout.addStretch()
-
-
-        # ---------------------------------------
-        # TRANG 4 - GHI HÌNH
-        # ---------------------------------------
-        # Khởi tạo trang
-        self.page_collect = QWidget()
-        self.page_collect_layout = QHBoxLayout(self.page_collect)
-
-        # Khởi tạo khung hình camera
-        self.cameraLabel = QLabel()
-        self.cameraLabel.setMinimumSize(
-            CFG.cameraFrameSize[0],
-            CFG.cameraFrameSize[1]
-        )
-
-        # Start collect button
-        self.start_btn = QPushButton("Start")
-        self.start_btn.setFixedWidth(CFG.button_width)
-
-        # Return button
-        self.redo_btn = QPushButton("Again")
-        self.redo_btn.setFixedWidth(CFG.button_width)
-
-        # Start timer - turn camera ON
-        self.on_btn = QPushButton("ON")
-        self.on_btn.setFixedWidth(CFG.button_width)
-
-        # Stop timer - turn camera OFF
-        self.off_btn = QPushButton("OFF")
-        self.off_btn.setFixedWidth(CFG.button_width)
-
-        self.frame_count_bar = QProgressBar()
-        self.frame_count_bar.setStyleSheet(CFG.bar_style)
-        self.frame_count_bar.setFixedWidth(CFG.barMinWidth)
+    while is_labeling:
+        label = str(input(f'Enter label for index [{index}] (enter "f" to finish labeling): '))
+        labels[index] = label
         
-        self.seq_count_bar = QProgressBar()
-        self.seq_count_bar.setStyleSheet(CFG.bar_style)
-        self.seq_count_bar.setFixedWidth(CFG.barMinWidth)
+        if label.lower() == "f":
+            labels.pop(index)
 
-        # Sắp xếp bố cục trang
-        self.page_collect_layout.addLayout(self.camera_layout)
-        self.page_collect_layout.addSpacing(10)
-        self.page_collect_layout.addLayout(self.right_layout)
+            if len(labels) < 2:
+                print("There must be at least 2 labels")
+                break
 
-        self.camera_layout.addWidget(self.cameraLabel)
+            with open(labels_dir, "w") as f:
+                json.dump(labels, f, indent=2)
 
-        # Set font chữ
-        font = QFont("Arial", 16)
-        font.setBold(True)
-
-        self.current_label = QLabel("Current label:")
-        self.current_label.setFont(font)
-
-        # Sắp xếp các thành phần của SIDEBAR bên phải
-        self.right_layout.addWidget(self.current_label)
-
-        self.right_layout.addWidget(QLabel("frame count"))
-        self.right_layout.addWidget(self.frame_count_bar)
-
-        self.right_layout.addSpacing(15)
-
-        self.right_layout.addWidget(QLabel("Progress"))
-        self.right_layout.addWidget(self.seq_count_bar)
-
-        self.right_layout.addSpacing(15)
-
-        self.right_layout.addStretch()
-
-        # Sắp xếp các nút bấm
-        button_layout = QVBoxLayout()
-        button_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-
-        button_layout.addWidget(self.start_btn)
-        button_layout.addWidget(self.on_btn)
-        button_layout.addWidget(self.off_btn)
-        button_layout.addWidget(self.redo_btn)
-
-        self.right_layout.addLayout(button_layout)
-
-        # --------------------------------------------------
-        # SẮP XẾP THỨ TỰ CÁC TRANG
-        # --------------------------------------------------
-        self.stack.addWidget(self.page_create_file)
-        self.stack.addWidget(self.page_labeling)
-        self.stack.addWidget(self.page_num_sample)
-        self.stack.addWidget(self.page_collect)
+            return labels
+        index += 1
 
 
-# ----------------------------------------------------------
-# DATA COLLECTOR
-# ----------------------------------------------------------
-# 
-# Description:
-#   - Tạo file
-#   - Ghi nhãn
-#   - Lưu file
-#   - Thu dữ liệu
-# ----------------------------------------------------------
-class CollectModule(Interface):
-    def __init__(self):
-        super().__init__()
+def count_down(frame, start_time, duration):
+    remaining = int(duration + 1 - (time.time() - start_time))
 
-        # Landmark list
-        self.lm_list = []
+    if remaining > 0:
+        # nền mờ
+        overlay = frame.copy()
+        cv2.rectangle(
+            overlay,
+            (frame.shape[1]//2 - 80, frame.shape[0]//2 - 80),
+            (frame.shape[1]//2 + 80, frame.shape[0]//2 + 80),
+            (30, 30, 30), -1
+        )
+        
+        frame[:] = cv2.addWeighted(overlay, 0.4, frame, 0.6, 0)
 
-        # Timestep - model.input_shape[1]
-        self.timestep = 30
+        # số đếm
+        cv2.putText(
+            frame,
+            str(remaining),
+            (frame.shape[1]//2 - 28, frame.shape[0]//2 + 28),
+            cv2.FONT_HERSHEY_SIMPLEX, 3,
+            COL.AMBER, 5
+        )
 
-        # Init data file index
-        self.data_file_idx = 0
+        cv2.putText(
+            frame,
+            str(remaining),
+            (frame.shape[1]//2 - 28, frame.shape[0]//2 + 28),
+            cv2.FONT_HERSHEY_SIMPLEX, 3,
+            COL.AMBER, 5
+        )
+        return False  # chưa xong
+    
+    else:
+        return True   # đã xong
 
-        # Init class index
-        self.class_idx = 0
 
+class CollectModule(Detector):
+    def __init__(self, timestep, num_sample, labels_dir):
+        self._mp_init()
+        self.timestep = timestep
+
+        self.sequence = []
         self.labels = {}
-        self.label_idx = 0
-        self.start_collecting_data = False
 
-        self.save_label_file_btn1.clicked.connect(self.save_label_file1)
-        self.save_label_file_btn2.clicked.connect(self.save_label_file2)
+        self.num_sample = num_sample
+        self.labels_dir = labels_dir
 
-        self.confirm_lb_btn.clicked.connect(self.confirm_label)
-        self.num_samp_confirm_btn.clicked.connect(self.confirm_num_sample)
+        self.is_recording = False
+        self.start_time = None
 
-        self.start_btn.clicked.connect(self.enable_collect_data)
-        self.redo_btn.clicked.connect(self.reset)
-
-        # QTimer - Cập nhật frame mỗi 30ms
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.run_camera)
-
-        self.on_btn.clicked.connect(self.start_timer)
-
-        self.off_btn.clicked.connect(self.timer.stop)
-        self.off_btn.clicked.connect(self.stop_camera)
-
-        # Số frame đã xử lý
-        self.frame_count = 0
-        
-    # Ghi nhãn vào bộ nhãn
-    def confirm_label(self):
-        label = self.label_input.text().strip()
-        self.labels[str(self.label_idx)] = label
-        self.label_idx += 1
-
-        self.label_input.setText("")
-
-    # Tạo file để ghi bộ nhãn.
-    def save_label_file1(self):
-        self.label_file_name = self.label_name_input.text().strip()
-        if not self.label_file_name:
-            pass
-
-        self.label_dir = Path(CFG.labels_dir) / f"{self.label_file_name}.json"
-        Path(self.label_dir).parent.mkdir(exist_ok=True)
-
-        self.labels = {}
-        
-        with open(self.label_dir, "w") as f:
-            json.dump(self.labels, f, indent=2)
-
-        self.stack.setCurrentWidget(self.page_labeling)
-
-
-    # Lưu bộ nhãn và0 file ghi bộ nhãn.
-    def save_label_file2(self):
-        with open(self.label_dir, "w") as f:
-            json.dump(self.labels, f, indent=2)
-
-        self.stack.setCurrentWidget(self.page_num_sample)
-
-    # xác nhận số lượng mẫu
-    def confirm_num_sample(self):
-        # Set number of samples
-        self.num_sample = self.num_sample_select.value()
-
-        # Enable collect data
-        self.stack.setCurrentWidget(self.page_collect)
-        self.camera_init()
-        self.mp_init()
-
-    # khởi tạo đối tượng đọc camera
-    def camera_init(self, frame_size: tuple = CFG.default_frame_size):
-        self.cap = cv2.VideoCapture(0)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_size[0])
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_size[1])
-
-        if not self.cap.isOpened():
-            print("Can't open camera")
-
-        self.timer.start(30)
-
-    """
-    Vòng lặp camera. Tạo đường dẫn lưu
-    dữ liệu. thu thập dữ và xử lý dữ liệu
-    từ camera. Lưu file dữ liệu đã xử lý.
-    """
-    def run_camera(self):
-        data_save_dir = Path(CFG.data_dir)
-        data_save_dir.mkdir(parents=True, exist_ok=True)
-
-        ret, frame = self.cap.read()
-        if not ret:
-            return
-
-        frame = cv2.flip(frame, 1)
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        self.hand_res = self.hands.process(rgb)
-        self.pose_res = self.pose.process(rgb)
-
-        draw_landmarks(frame, self.hand_res, self.pose_res)
-
-        total = sum(self.count_seq(data_save_dir, label)
-                    for label in self.labels.values())
-
-        self.class_idx = self.get_current_class_idx(data_save_dir)
-
-        if self.class_idx < len(self.labels):
-            curr_class = self.labels[str(self.class_idx)]
-            self.current_label.setText("Current label: " + curr_class)
-        
-            if total < self.num_sample * len(self.labels):
-                self.collect_data(data_save_dir, curr_class)
-        else:
-            self.start_btn.setDisabled(True)
-
-        # Cập nhật quá trình thu thập dữ liệu
-        self.draw_progress_bar(total)
-
-        # Cập nhật frame mới
-        self.update_frame(frame)
-
-    def enable_collect_data(self):
-        self.start_collecting_data = not self.start_collecting_data
-
-    """
-    Xử lý dữ liệu, lưu dữ liệu, cập nhật tiến độ.
-    """
-    def collect_data(self, data_save_dir, curr_class):
-        if self.start_collecting_data:
-            self.data_file_idx = self.count_seq(data_save_dir, curr_class)
-            if self.data_file_idx < self.num_sample:
-                # Extract features
-                if self.hand_res and self.hand_res.multi_hand_landmarks:
-                    lm = extract_landmarks(self.hand_res, self.pose_res)
-                else:
-                    lm = [0] * lm_shape
-                    
-                self.current_label.setText(
-                    "Current label: " + curr_class
-                )
-
-                # Append data to landmark list
-                if len(self.lm_list) < self.timestep:
-                    self.lm_list.append(lm)
-                    self.frame_count += 1
-                    self.draw_frame_count_bar()
-                    self.start_btn.setDisabled(True)
-                # Save data file
-                else:
-                    data_save_path = Path(data_save_dir) / curr_class / f"{self.data_file_idx}.npy"
-                    Path(data_save_path).parent.mkdir(parents=True, exist_ok=True)
-                    np.save(
-                        data_save_path,
-                        np.array(self.lm_list, dtype=np.float32)
-                    )
-
-                    self.lm_list.clear()
-                    self.start_collecting_data = False
-                    self.start_btn.setEnabled(True)
-
-                    self.data_file_idx = self.count_seq(data_save_dir, curr_class)
-            else:
-                self.data_file_idx = 0
-
-    """
-    Hiển thị tiến độ thu thập dữ liệu
-    bằng dạng progress bar.
-    """
-    # Phần trăm khung hình đã xử lý
-    def draw_frame_count_bar(self):
-        # Cập nhật giá trị trên frame_count_bar
-        self.frame_count_bar.setValue(
-            int(100*self.frame_count/self.timestep)
-        )
-
-        # Reset frame_count về 0 sau khi đủ video
-        if self.frame_count >= self.timestep:
-            self.frame_count = 0
-
-    # Phần trăm số dữ liệu đã thu
-    def draw_progress_bar(self, total):
-        # Đếm số chuỗi đã thu
-        self.seq_count_bar.setValue(
-            int(100*total/(self.num_sample*len(self.labels)))
-        )
-
-    # Đếm số lượng mẫu trong một thư mục
-    def count_seq(self, data_save_dir, curr_class):
-        label_path = Path(data_save_dir) / curr_class
+    def count_seq(self, label):
+        label_path = Path(data_dir) / "processed" / label
 
         if not label_path.exists():
             return 0
 
-        num_seq = len(os.listdir(label_path))
+        num_seq = len(list(label_path.glob("*.npy")))
         return num_seq
 
-    def get_current_class_idx(self, data_save_dir):
-        for idx in range(len(self.labels)):
-            label_name = self.labels[str(idx)]
-            if self.count_seq(
-                data_save_dir, label_name
-            ) < self.num_sample:
-                return idx
-        return len(self.labels)
 
-    # Khởi tạo các đối tượng của mediapipe
-    def mp_init(self):
-        self.mp_hand = mp.solutions.hands
-        self.mp_pose = mp.solutions.pose
+    def make_sequence(self, hand_results, pose_results):
+        if hand_results.multi_hand_landmarks:
+            lm = extract_landmarks(hand_results, pose_results)
+        else:
+            lm = [0]*(63*2+33*3)
+        
+        if len(self.sequence) < self.timestep:
+            self.sequence.append(lm)
+    
 
-        self.hands = self.mp_hand.Hands(
-            max_num_hands = 2,
-            min_detection_confidence = 0.7,
-            min_tracking_confidence  = 0.5
+    def collect(self, hand_results, pose_resulte, current_index):
+        self.make_sequence(hand_results, pose_resulte)
+        
+        save_dir = Path(data_dir) / "processed" / self.labels[current_index]
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        seq_id = self.count_seq(self.labels[current_index])
+        save_path = save_dir / f"{seq_id}.npy"
+        
+        if seq_id == self.num_sample:
+            self.is_recording = False
+
+        if len(self.sequence) == self.timestep:
+            np.save(
+                save_path,
+                np.array(self.sequence, dtype=np.float32)
+            )
+            self.is_recording = False
+            self.sequence.clear()
+
+
+    def draw_progress_bar(self, frame, curr_idx):
+        # MAIN BAR
+        main_bar_start_x = 30
+        main_bar_start_y = 300
+        bar_w = 250
+        bar_h = 20
+
+        cv2.putText(
+            frame,
+            "Overall process",
+            (main_bar_start_x, main_bar_start_y-5),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, COL.WHITE, 1
         )
 
-        self.pose = self.mp_pose.Pose(
-            min_detection_confidence = 0.7,
-            min_tracking_confidence  = 0.5
+        # BLANK BAR
+        cv2.rectangle(
+            frame,
+            (main_bar_start_x, main_bar_start_y),
+            (
+                main_bar_start_x + bar_w,
+                main_bar_start_y + bar_h
+            ),
+            COL.BLACK, -1
         )
 
-        self.mp_draw = mp.solutions.drawing_utils
-
-    # Cập nhật khung hình
-    def update_frame(self, frame):
-        frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        h, w, _ = frameRGB.shape
-        image = QImage(
-            frameRGB.data,
-            w, h, w * 3,
-            QImage.Format.Format_RGB888
+        cv2.rectangle(
+            frame,
+            (main_bar_start_x, main_bar_start_y),
+            (
+                main_bar_start_x + bar_w,
+                main_bar_start_y + bar_h
+            ),
+            COL.WHITE, 2
         )
 
-        image = image.scaled(
-            self.cameraLabel.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
+        # FILL
+        total = sum(self.count_seq(label)
+                    for label in self.labels.values())
+        fill_size = int(bar_w * total/(self.num_sample * len(self.labels)))
+
+        cv2.rectangle(
+            frame,
+            (main_bar_start_x, main_bar_start_y),
+            (
+                main_bar_start_x + fill_size,
+                main_bar_start_y + bar_h
+            ),
+            COL.WHITE, -1
         )
 
-        self.cameraLabel.setPixmap(QPixmap.fromImage(image))
+        # CURRENT PROCESS BAR
+        curr_start_x = main_bar_start_x
+        curr_start_y = main_bar_start_y+bar_h+30
 
-    # Hiện màn hình đen khi tạm dừng chương trình
-    def stop_camera(self):
-        self.timer.stop()
+        cv2.putText(
+            frame,
+            "Current process",
+            (curr_start_x, curr_start_y-5),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, COL.WHITE, 1
+        )
 
-        h = self.cameraLabel.height()
-        w = self.cameraLabel.width()
+        # BLANK BAR
+        cv2.rectangle(
+            frame,
+            (curr_start_x, curr_start_y),
+            (
+                curr_start_x + bar_w,
+                curr_start_y + bar_h
+            ),
+            COL.BLACK, -1
+        )
 
-        black = np.zeros((h, w, 3), dtype=np.uint8)
-        self.update_frame(black)
+        fill_size = int(bar_w * self.count_seq(self.labels[curr_idx])/self.num_sample)
+        cv2.rectangle(
+            frame,
+            (curr_start_x, curr_start_y),
+            (
+                curr_start_x+fill_size,
+                curr_start_y + bar_h
+            ),
+            COL.WHITE, -1
+        )
 
-    # Bật QTimer
-    def start_timer(self):
-        # Tự động gọi hàm run_camera mỗi 30ms
-        self.timer.start(30)
+        cv2.rectangle(
+            frame,
+            (curr_start_x, curr_start_y),
+            (
+                curr_start_x + bar_w,
+                curr_start_y + bar_h
+            ),
+            COL.WHITE, 2
+        )
 
-    # Reset
-    def reset(self):
-        self.timer.stop()
+
+    def frame_count_bar(self, frame, frame_count):
+        # FRAME COUNT
+        fc_start_x = 30
+        fc_start_y = 220
+        fc_w = 200
+        fc_h = 10
+
+        cv2.rectangle(
+            frame,
+            (fc_start_x, fc_start_y), (fc_start_x+fc_w, fc_start_y+fc_h),
+            COL.NAVY, -1
+        )
+
+        if frame_count <= self.timestep:
+            cv2.rectangle(
+                frame,
+                (fc_start_x, fc_start_y),
+                (fc_start_x+int(fc_w*frame_count/self.timestep), fc_start_y+fc_h),
+                COL.CYAN, -1
+            )
+
+        cv2.rectangle(
+            frame,
+            (fc_start_x, fc_start_y), (fc_start_x+fc_w, fc_start_y+fc_h),
+            COL.AMBER, 1
+        )
+
+
+    def run(self):
+        self._camera_init()
+
+        clear_terminal()
+        print("═"*50)
+        print(" DATA COLLECT MODULE")
+        print(" Press SPACE to start collecting")
+        print("═"*50)
+
+        self.labels = get_labels(self.labels_dir)
+        if not self.labels:
+            return
+
+        Path(data_dir).mkdir(exist_ok=True)
+        
+        label_idx = 0
+        frame_count = 0
+
+        for label_idx in self.labels.keys():
+            while True:
+                ret, frame = self.cap.read()
+                if not ret:
+                    print("Can't read frame from camera")
+                    break
+                frame = cv2.flip(frame, 1)
+                framergb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                hand_res = self.hands.process(framergb)
+                pose_res = self.pose.process(framergb)
+
+                # Process box
+                cv2.rectangle(
+                    frame,
+                    (0, 0), (320, 400),
+                    COL.GRAY, -1
+                )
+
+                cv2.rectangle(
+                    frame,
+                    (0, 0), (320, 400),
+                    COL.AMBER, 2
+                )
+
+                draw_ui(
+                    frame,
+                    hand_results=hand_res,
+                    model_name=None,
+                    guides='Press SPACE to start collecting    |    Press ESC to quit'
+                )
+                self.draw_progress_bar(frame, label_idx)
+                draw_text(
+                    frame,
+                    f"LABEL: {self.labels[label_idx]}",
+                    (25,75),
+                    35, COL.WHITE,
+                    bg_bgr=(10, 30, 60)
+                )
+
+                draw_landmarks(frame, hand_res, pose_res)
+                current_n_seq = self.count_seq(self.labels[label_idx])
+
+                if self.is_recording:
+                    started = count_down(frame, self.start_time, 3)
+                    if started:
+                        current_n_seq += 1
+                        cv2.putText(
+                            frame,
+                            "Recording",
+                            (30, 200),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1, COL.RED, 2
+                        )
+
+                        self.collect(hand_res, pose_res, label_idx)
+                        frame_count += 1
+                        
+                        self.frame_count_bar(frame, frame_count)
+
+                    if (not self.is_recording
+                        and self.count_seq(self.labels[label_idx])==self.num_sample):
+                        break                        
+
+                else:
+                    frame_count = 0
+
+                cv2.putText(
+                    frame,
+                    f'{current_n_seq}/{self.num_sample}',
+                    (30, 145),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (255,255,255),
+                    2
+                )
+                cv2.imshow("DataCollectModule", frame)
+
+                key = cv2.waitKey(1) & 0xFF
+                if (key == 27
+                    or self.count_seq(self.labels[label_idx])>=self.num_sample):
+                    break
+
+                if key == ord(" ") and not self.is_recording:
+                    self.is_recording = True
+                    self.start_time = time.time()
+
         self.cap.release()
-
-        self.frame_count = 0
-        self.frame_count_bar.setValue(0)
-
-        self.label_name_input.clear()
-        self.label_input.clear()
-
-        self.lm_list.clear()
-
-        self.start_btn.setEnabled(True)
-        self.label_dir = None
-
-        self.class_idx = 0
-        self.data_file_idx = 0
-
-        self.stack.setCurrentWidget(self.page_create_file)
+        cv2.destroyAllWindows()
 
 
-# def main():
-#     from PySide6.QtWidgets import QApplication
-#     app = QApplication()
+def main():
+    clear_terminal()
 
-#     window = CollectModule()
-#     window.show()
+    labels_name = None
+    while not labels_name or not labels_name.strip():
+        clear_terminal()
+        labels_name = str(input("Enter labels file name: "))
 
-#     app.exec()
+    labels_dir = f"labels/{labels_name}.json"
+    Path(labels_dir).parent.mkdir(parents=True, exist_ok=True)
 
-#     if hasattr(window, "cap"):
-#         window.cap.release()
+    n_samples = default_num_samples
+    try:
+        n_samples = int(input(f"Enter number of samples for each label (default num-samples: {default_num_samples}): "))
+        if n_samples < 20:
+            print("⚠️ There must be at least 20 samples for each label!")
+            print(f"Using default number of samples: {default_num_samples}")
+            time.sleep(1.0)
+    except ValueError:
+        print("⚠️ You must enter an interger!")
+        print(f"Using default number of samples: {default_num_samples}")
 
-# if __name__=="__main__":
-#     main()
+    if n_samples >= 20: num_sample = n_samples
+
+    collect_module = CollectModule(
+        timestep=30,
+        num_sample=num_sample,
+        labels_dir=labels_dir
+    )
+
+    collect_module.run()
+    if not collect_module.labels:
+        return
+
+    print("\n" + "═"*50)
+    print(" 📊 DATA COLLECT RESULTS")
+    print("═"*50)
+    print(f'{"LABELS":<15}{"SAMPLES":<8}\n')
+
+    for label in collect_module.labels.values():
+        num_collected_samples = f"{collect_module.count_seq(label)}/{num_sample}"
+        print(f"{label:<15}{num_collected_samples:<8}")
+
+if __name__=="__main__":
+    main()

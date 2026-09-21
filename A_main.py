@@ -1,225 +1,127 @@
-# =========================================================
-# HAND GESTURE DETECTOR
-# =========================================================
-# File name   : A_main.py
-# Description : Module điều khiển chính
-#               của phần mềm.
-# 
-# ---------------------------------------------------------
-# CẤU TRÚC DỰ ÁN
-# ---------------------------------------------------------
-# Project/
-# │
-# ├── data/
-# │   │
-# │   ├── processed/        <- dữ liệu để huấn luyện
-# │   │   ├── Xin chào/     <- tên nhãn
-# │   │   │   ├── 0.npy     <- video mẫu
-# │   │   │   ├── 1.npy
-# │   │   │   └── ...
-# │   │   └── ...
-# │   │
-# │   └── training_plot/    <- biểu đồ
-# │       ├── training_plot.png     <- accuracy, loss
-# │       └── confusion_matrix.png  <- ma trận nhầm lẫn
-# │
-# ├── labels/
-# │   │
-# │   ├── asl_labels.json
-# │   └── ...
-# │
-# ├── models/
-# │   │
-# │   ├── asl_model.keras
-# │   └── ...
-# │
-# ├── voices/
-# │   │
-# │   ├── en_US-lessac-medium.onnx
-# │   └── en_US-lessac-medium.onnx.json
-# │
-# ├── _configurations.py
-# ├── _detector.py
-# ├── _landmarks_module.py
-# ├── _tts_module.py
-# │
-# ├── A_main.py
-# │
-# ├── a1_data_collect_module.py
-# ├── a2_model_training_module.py
-# ├── b1_module1_single_sign.py
-# └── b2_module2_multi_signs.py
-# ---------------------------------------------------------
 
 
-from a1_data_collect_module   import CollectModule
-from a2_model_training_module import TrainingModule
-from b1_module1_single_sign   import Module1
-from b2_module2_multi_signs   import Module2
+"""
+══════════════════════════════════════════════════════
+MODULE CHÍNH CỦA PHẦN MỀM
+══════════════════════════════════════════════════════
 
-import resources_rc
-import sys
+import các module:
+    - a1_data_collect_module
+    - a2_model_training_module
+    - b1_module1_single_sign
+    - b2_module2_multi_signs
 
-from PySide6.QtWidgets import QApplication
-from PySide6.QtWidgets import QHBoxLayout
-from PySide6.QtWidgets import QVBoxLayout
-from PySide6.QtWidgets import QWidget
-from PySide6.QtWidgets import QPushButton
-from PySide6.QtWidgets import QStackedWidget
-from PySide6.QtWidgets import QLabel
+clear terminal để hiện giao diện CLI.
+Tạo ô input để user chọn module muốn sử dụng.
 
-from PySide6.QtGui  import QIcon
-from PySide6.QtGui  import QPixmap
-
-
-# -------------------------------------------------------------
-# HOME PAGE
-# -------------------------------------------------------------
-# 
-# Giao diện trang giới thiệu, hướng dẫn người dùng sử dụng
-# các tính năng của phần mềm.
-# -------------------------------------------------------------
-class HomaPage(QWidget):
-    def __init__(self):
-        super().__init__()
-        home_page_layout = QVBoxLayout(self)
-
-        # WIDGET STACK
-        stack = QStackedWidget()
-
-        # CREATE PAGES
-        num_page = 13
-        pages = {}
-        for i in range(num_page):
-            label = QLabel()
-            label.setPixmap(
-                QPixmap(f":/resources/Slide{i+1}.PNG")
-            )
-            label.setScaledContents(True)
-            pages[i] = QWidget()
-            layout = QVBoxLayout(pages[i])
-            layout.addWidget(label)
-
-            stack.addWidget(pages[i])
-
-        # NEXT PAGE BUTTON
-        next_btn = QPushButton("Next page")
-        next_btn.setFixedWidth(150)
-        next_btn.clicked.connect(
-            lambda: (
-                stack.setCurrentIndex(
-                    stack.currentIndex() + 1
-                    if stack.currentIndex() < num_page - 1
-                    else 0
-                )
-            )
-        )
-
-        # PREVIOUS PAGE BUTTON
-        prev_btn = QPushButton("Previous page")
-        prev_btn.setFixedWidth(150)
-        prev_btn.clicked.connect(
-            lambda: (
-                stack.setCurrentIndex(
-                    stack.currentIndex() - 1
-                    if stack.currentIndex() > 0
-                    else num_page - 1
-                )
-            )
-        )
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        button_layout.addWidget(prev_btn)
-        button_layout.addWidget(next_btn)
-        button_layout.addStretch()
-
-        home_page_layout.addWidget(stack)
-        home_page_layout.addLayout(button_layout)
+Cách chạy:
+    python main.py
+    Chọn module, nhấn 'q' để thoát chương trình
+    a1 -> Thu thập dữ liệu huấn luyện
+    a2 -> Huấn luyện mô hình 
+    b1 -> Nhận diện ký hiệu đơn lẻ: 1 ký hiệu = 1 từ/câu
+    b2 -> Chuỗi ký hiệu: nhiều từ ghép thành câu
+"""
 
 
-# -------------------------------------------------------------
-# MAIN WINDOW
-# -------------------------------------------------------------
-# 
-# Giao diện chính điều khiển phần mềm, bao gồm tất cả các trang
-# -------------------------------------------------------------
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
+import a1_data_collect_module as collect_module
+import a2_model_training_module as train_module
+import b1_module1_single_sign as module_1
+import b2_module2_multi_signs as module_2
+import subprocess
+import platform
 
-        self.setWindowTitle("Hand Gesture Detector")
+# ══════════════════════════════════════════════════════
+# ANSI COLORS
+# ══════════════════════════════════════════════════════
+RESET  = "\033[0m"
+BOLD   = "\033[1m"
 
-        mainLayout   = QVBoxLayout(self)
-        bottomLayout = QHBoxLayout()
+WHITE  = "\033[97m"
+GRAY   = "\033[90m"
 
-        # Buttons
-        home_btn               = QPushButton("Home")
-        module1_btn            = QPushButton("Single Sign")
-        module2_btn            = QPushButton("Multi Signs")
-        collect_module_btn     = QPushButton("Collect Data")
-        train_model_module_btn = QPushButton("Train model")
+CYAN   = "\033[96m"
+GREEN  = "\033[92m"
+YELLOW = "\033[93m"
+PURPLE = "\033[95m"
 
-        home_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(home_page)
-            )
-        )
-        module1_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(module1_window)
-            )
-        )
-        module2_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(module2_window)
-            )
-        )
-        collect_module_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(collect_window)
-            )
-        )
-        train_model_module_btn.clicked.connect(
-            lambda: (
-                mainWidget.setCurrentWidget(training_window)
-            )
-        )
+# ══════════════════════════════════════════════════════
+# TITLE
+# ══════════════════════════════════════════════════════
 
-        # Align buttons
-        bottomLayout.addWidget(collect_module_btn)
-        bottomLayout.addWidget(train_model_module_btn)
-        bottomLayout.addWidget(home_btn)
-        bottomLayout.addWidget(module1_btn)
-        bottomLayout.addWidget(module2_btn)
+title = rf"""{CYAN}
+██╗  ██╗ █████╗ ███╗   ██╗██████╗   ███████╗██╗ ██████╗ ███╗   ██╗
+██║  ██║██╔══██╗████╗  ██║██╔══██╗  ██╔════╝██║██╔════╝ ████╗  ██║
+███████║███████║██╔██╗ ██║██║  ██║  ███████╗██║██║  ███╗██╔██╗ ██║
+██╔══██║██╔══██║██║╚██╗██║██║  ██║  ╚════██║██║██║   ██║██║╚██╗██║
+██║  ██║██║  ██║██║ ╚████║██████╔╝  ███████║██║╚██████╔╝██║ ╚████║
+╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝   ╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 
-        # Main window
-        mainWidget = QStackedWidget()
+██████╗ ███████╗████████╗███████╗ ██████╗████████╗ ██████╗ ██████╗
+██╔══██╗██╔════╝╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗
+██║  ██║█████╗     ██║   █████╗  ██║        ██║   ██║   ██║██████╔╝
+██║  ██║██╔══╝     ██║   ██╔══╝  ██║        ██║   ██║   ██║██╔══██╗
+██████╔╝███████╗   ██║   ███████╗╚██████╗   ██║   ╚██████╔╝██║  ██║
+╚═════╝ ╚══════╝   ╚═╝   ╚══════╝ ╚═════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+{RESET}
+"""
 
-        mainLayout.addWidget(mainWidget)
-        mainLayout.addLayout(bottomLayout)
-
-        home_page       = HomaPage()
-        module1_window  = Module1()
-        module2_window  = Module2()
-        collect_window  = CollectModule()
-        training_window = TrainingModule()
-
-        mainWidget.addWidget(home_page)
-        mainWidget.addWidget(module1_window)
-        mainWidget.addWidget(module2_window)
-        mainWidget.addWidget(collect_window)
-        mainWidget.addWidget(training_window)
+def clear_terminal():
+    if platform.system() == "Windows":
+        subprocess.run("cls", shell=True)
+    else:  # Linux và macOS
+        subprocess.run("clear", shell=True)
 
 
 def main():
-    app = QApplication(sys.argv)
+    while True:
+        clear_terminal()
 
-    window = MainWindow()
-    window.setWindowIcon(QIcon(":/resources/icon.ico"))
-    window.resize(1200, 700)
-    window.show()
+        print(title)
 
-    app.exec()
+        print(f"{GRAY}{'─'*18} Real-time Hand Sign Recognition {'─'*18}{RESET}\n")
+        print(f"{GRAY}┌{'─'*67}┐{RESET}")
+        print(f"{GRAY}│{RESET} {CYAN}Controls:{RESET}{' '*57}{GRAY}│{RESET}")
+        
+        controls = [
+            ("a1", "Collect data for model training"),
+            ("a2", "Train model"),
+            ("b1", "Detect single signs"),
+            ("b2", "Detect multi signs"),
+            ("space", "Start/stop detection"),
+            ("q", "Quit"),
+        ]
+
+        for keys, text in controls:
+            key_text = f"[{keys}]"
+            key = f"[{YELLOW}{keys}{WHITE}]"
+
+            line = f"{GRAY}│{RESET} {key} {' '*(12 - len(key_text))} {text} {GRAY}{' '*(51-len(text)) + '│'}{RESET}"
+            print(line)
+
+        print(f"{GRAY}└{'─'*67}┘{RESET}")
+
+        print()
+        print(f"{GRAY}{'─'*90}{RESET}")
+        print()
+
+        # USER'S SELECTION
+        print(f"{PURPLE}SELECT > {RESET}", end="")
+        choose = str(input())
+        choose = choose.lower().strip()
+
+        if choose == "q":
+            break
+        elif choose == "a1":
+            collect_module.main()
+        elif choose == "a2":
+            train_module.main()
+        elif choose == "b1":
+            module_1.main()
+        elif choose == "b2":
+            module_2.main()
+        else:
+            print("Invalid choice...")
 
 if __name__=="__main__":
     main()

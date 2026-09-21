@@ -1,11 +1,22 @@
-# ==================================================
-# TEXT TO SPEECH PROCESSOR
-# ==================================================
-# File name   : _tts_module.py
-# Description : Khởi tạo luồng đọc văn bản
-#               thành tiếng chạy song song với
-#               luồng chính cảu phần mềm.
-# --------------------------------------------------
+
+
+"""
+══════════════════════════════════════════════════════
+TEXT TO SPEECH MODULE
+══════════════════════════════════════════════════════
+
+Load:
+    voice/
+    ├── en_US-lessac-medium.onnx
+    └── en_US-lessac-medium.onnx.json
+
+Luồng đọc văn bản thành tiếng, chạy độc lập với
+luồng chính nhận diện ký hiệu.
+
+Luồng được khởi tạo khi người dùng bật tính năng
+đọc thành tiếng, tự động gọi hàm hủy luồng hoạt
+động khi người dùng tắt tính năng này.
+"""
 
 
 from piper.voice import PiperVoice
@@ -13,49 +24,26 @@ import sounddevice as sd
 import threading
 import numpy as np
 import time
-import sys
-import os
+import cv2
+from _configurations import ui_cfg
 
 
-GREEN  = (76, 153, 0)
-RED    = (50, 50, 220)
+GREEN = (76, 153, 0)
+RED = (50, 50, 220)
+UI_CFG = ui_cfg()
 
 
-# Khóa dừng luồng
+# Khóa ngắt luồng khi muốn ngưng đọc thành tiếng
 stop_thread = threading.Event()
 
-# load model giọng đọc tiếng Anh
-"""
-Nguyên lý hoạt động:
-    Khi compile bằng lệnh
-    `pyinstaller main.py --onedir --add-data "voices;voices"`,
-    khi chạy phần mềm thì file main.exe sẽ giải nén
-    các thư mục được thêm vào từ `--add-data` vào một
-    thư mục các file tạm.
-    
-    Hàm resource_path là để tìm đường dẫn tới model voice
-    trong thư mục tạm đó, thay vì dùng đường dẫn tương đối
-    cần phải copy trực tiếp thư mục voices vào cùng với
-    main.exe.
-"""
-def resource_path(relative_path):
-    if hasattr(sys, "_MEIPASS"):
-        # Tìm trong thư mục giải nén của pyinstaller
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
-
-model_path = resource_path("voices/en_US-lessac-medium.onnx")
-voice = PiperVoice.load(model_path)
-
-# ------------------------------------------
-# Funciton name : speak
-# Description   : Đọc văn bản thành tiếng.
-# ------------------------------------------
+# Tải model giọng đọc tiếng Anh
+voice = PiperVoice.load("voices/en_US-lessac-medium.onnx")
 def speak(text):
     """
-    Chia nhỏ các âm tiết trong văn bản,
-    sau đó chyển thành các bytes. Cuối cùng
-    phát ra loa bằng sounddevice.
+    Chuyển văn bản thành vector các byte
+    dữ liệu và tách thành phoneme.
+
+    Phát âm thanh bằng sounddevice.
     """
     audio = bytearray()
 
@@ -69,92 +57,96 @@ def speak(text):
 
     sd.play(
         pcm,
-        samplerate=voice.config.sample_rate,
-        blocksize=2048
+        samplerate=voice.config.sample_rate
     )
     sd.wait()
 
 
-# -----------------------------------------------
-# Function name : get_constraints
-# Description   : Xét điều kiện để gọi hàm speak.
-# -----------------------------------------------
 def get_constraints(detector):
     """
     Xét điều kiện, kiểm tra có yêu cầu
-    ngưỡng thời gian (set_time) không:
-    - Trong single_sign_module, detector
-      không yêu cầu ngưỡng thời gian chờ.
-    - Trong multi_sign_module, detector
-      (trong module này là Collector)
-      yêu cầu thời gian chờ để người dùng
-      ghép từ, sau khi hết thời gian chờ
-      mới đọc cả câu.
+    ngưỡng thời gian (set_time) không.
     """
     const1 = detector.speak != detector.last_spoke
     const2 = detector.speak.strip()
-    if hasattr(detector, "confirmed"):
-        return const1 and const2 and detector.confirmed
+    if hasattr(detector, "set_time"):
+        return const1 and const2 and time.time() >= detector.set_time
     return const1 and const2
 
 
-# -----------------------------------------------------
-# Funciton name : call_speak
-# Description   : Vòng lặp gọi hàm speak.
-# -----------------------------------------------------
-def call_speak(detector: object, aud_btn):
+# Luồng đọc văn bản thành tiếng
+def call_speak(detector: object):
     """
-    Luồng chạy liên tục, bất cứ khi nào
-    thỏa mãn các điều kiện ràng buộc và
-    chế độ đọc thành tiếng được bật lên
-    (aud_btn.isChecked) thì phát âm thanh.
+    Khi thread vẫn đang tồn tại (stop_thread
+    chưa được set), vòng lặp sẽ xét điều kiện
+    từ hàm get constraint và gọi hàm speak để
+    chuyển văn bản thành âm thanh, sau đó gán
+    biến last_spoke bằng từ vừa mới đọc để
+    tránh lặp lại một từ nhiều lần.
     """
     while not stop_thread.is_set():
-        try:
-            constraints = get_constraints(detector)
-
-            if aud_btn.isChecked() and constraints:
+        constraints = get_constraints(detector)
+        if constraints:
+            try:
                 speak(detector.speak)
                 detector.last_spoke = detector.speak
-                if hasattr(detector, "confirmed"):
-                    detector.confirmed  = False
-                    detector.last_spoke = ""
 
-        except RuntimeError:
-            break
-
-        except Exception as e:
-            print(f"Speaker error: {e}")
+            except Exception as e:
+                print(f"Speaker error: {e}")
 
         time.sleep(0.05)
 
 
-# ---------------------------------------------------------------
-# Function name : speaker_init
-# Description   : Khởi tạo luồng đọc văn bản thành tiếng.
-# ---------------------------------------------------------------
-def speaker_init(detector: object, aud_btn) -> threading.Thread:
+def speaker_init(detector: object) -> threading.Thread:
+    """
+    Khởi tạo luồng đọc thành tiếng
+    """
     speaker_thread = None
-    stop_thread.clear()
     try:
         speaker_thread = threading.Thread(
             target=call_speak,
-            args=(detector, aud_btn),
+            args=(detector,),
             daemon=True
         )
 
     except Exception as e:
         print(f"Error: {e}")
         print("Can't play audio")
-        return
+        pass
     return speaker_thread
 
 
-# -------------------------------------------------------
-# Function name : delete_speaker
-# Description   : Dừng luồng đọc văn bản
-#                 và xóa khỏi bộ nhớ đệm.
-# -------------------------------------------------------
 def delete_speaker(speaker_thread: threading.Thread):
+    """
+    Hủy luồng khi người dùng tắt
+    tính năng đọc thành tiếng.
+    """
     stop_thread.set()
     speaker_thread.join()
+
+
+# Kiểm tra có đang sử dụng tính năng đọc thành tiếng không
+def audio_state(frame, use_audio):
+    h, w = frame.shape[:2]
+    def_w, def_h = UI_CFG.default_frame_size
+
+    # scale
+    sx = w/def_w
+    sy = h/def_h
+
+    scale = min(sx, sy)
+
+    if use_audio:
+        speaker_stat = "Using Audio"
+        col = GREEN
+    else:
+        speaker_stat = "Not Using Audio"
+        col = RED
+    
+    cv2.putText(
+        frame,
+        speaker_stat,
+        (w-int(300*sx), h-int(20*sy)),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8*scale, col, max(1, int(2*scale))
+    )

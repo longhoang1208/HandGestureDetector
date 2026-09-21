@@ -1,55 +1,43 @@
-# ==================================================
-# DETECTOR MODULE
-# ==================================================
-# File name   : _detector.py
-# Description : Module xử lý dữ liệu từ camera
-#               và dự đoán cử chỉ tay sử dụng
-#               mô hình BiLSTM. Đồng thời khởi
-#               tạo giao diện chung cơ bản cho
-#               2 module nhận diện cử chỉ tay
-#               sau này: single_sign và multi_sign.
-# --------------------------------------------------
+
+
+"""
+══════════════════════════════════════════════════════
+HAND SIGN DETECT MODULE
+══════════════════════════════════════════════════════
+
+Module nhận diện cử chỉ tay sử dụng
+mô hình BiLSTM.
+
+- Load mô hình và nhãn.
+
+- Trích xuất đặc trưng từ camera
+  và chuẩn hóa dữ liệu bằng
+  module _landmark_module.py.
+
+- Nhận diện ký hiệu bằng mô hình
+  BiLSTM.
+
+- Vẽ các điểm landmark và khung xương.
+
+- Vẽ thanh xác suất của 5 nhãn có
+  xác suất cao nhất.
+"""
 
 
 import cv2
 import mediapipe as mp
+from _landmark_module import extract_landmarks
 import numpy as np
 import time
-import os
-import keras
-import gc
+from _configurations import color
+from _draw_ui_module import ui_cfg
 
-from PySide6.QtCore import Qt
-from PySide6.QtCore import QTimer
-from PySide6.QtGui  import QImage
-from PySide6.QtGui  import QPixmap
-from PySide6.QtGui  import QFont
 
-from PySide6.QtWidgets import QHBoxLayout
-from PySide6.QtWidgets import QVBoxLayout
-from PySide6.QtWidgets import QPushButton
-from PySide6.QtWidgets import QLabel
-from PySide6.QtWidgets import QWidget
-from PySide6.QtWidgets import QProgressBar
-from PySide6.QtWidgets import QComboBox
-from PySide6.QtWidgets import QStackedWidget
+# ════════════════════════════════════════════════════════════════════════════════════
+# CONFIG
+# ════════════════════════════════════════════════════════════════════════════════════
 
-from _landmark   import extract_landmarks
-from _config     import config
-from _config     import color
-from _tts_module import delete_speaker
-
-# -----------------------------------
-# CONFIGURATIONS
-# -----------------------------------
-# 
-# max_num_hand             : 2 hands
-# min_detection_confidence : 70%
-# min_tracking_confidence  : 50%
-# label_duration           : 0.1s
-# -----------------------------------
-
-class DetectorConfigurations:
+class config:
     def __init__(self):
         self.max_num_hand = 2
         self.min_detection_confidence = 0.7
@@ -57,19 +45,16 @@ class DetectorConfigurations:
 
         self.label_duration = 0.1
 
-Dt_CFG = DetectorConfigurations()
-CFG = config()
+cfg = config()
+ui_CFG = ui_cfg()
 COL = color()
 
-
-# --------------------------------------------
-# DETECTOR
-# --------------------------------------------
-# 
-# Trích xuất đặc trưng.
-# Chuẩn hóa dữ.
-# Ghép chuỗi & nhận diện ký hiệu.
-# --------------------------------------------
+# ════════════════════════════════════════════════════════════════════════════════════
+# LOGIC XỬ LÝ CHÍNH
+# - trích xuất đặc trưng
+# - chuẩn hóa dữ
+# - ghép chuỗi & nhận diện ký hiệu
+# ════════════════════════════════════════════════════════════════════════════════════
 
 class Detector:
     def __init__(self, model, labels):
@@ -97,7 +82,7 @@ class Detector:
         """
         frame_size có dạng (frame_width, frame_height)
         """
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_size[0])
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_size[1])
 
@@ -111,16 +96,18 @@ class Detector:
         """
         mp_hands = mp.solutions.hands
         self.hands = mp_hands.Hands(
-            max_num_hands=Dt_CFG.max_num_hand,
-            min_detection_confidence=Dt_CFG.min_detection_confidence,
-            min_tracking_confidence=Dt_CFG.min_tracking_confidence
+            max_num_hands=cfg.max_num_hand,
+            min_detection_confidence=cfg.min_detection_confidence,
+            min_tracking_confidence=cfg.min_tracking_confidence,
         )
         self.hand_results = None
 
         mp_pose = mp.solutions.pose
         self.pose = mp_pose.Pose(
-            min_detection_confidence=Dt_CFG.min_detection_confidence,
-            min_tracking_confidence=Dt_CFG.min_tracking_confidence
+            static_image_mode=False,
+            model_complexity=1,
+            min_tracking_confidence=0.5,
+            min_detection_confidence=0.5
         )
         self.pose_results = None
 
@@ -150,7 +137,7 @@ class Detector:
             self.last_spoke = ""
         
         if self.label != self.last_label:
-            self.stable_time = time.time() + Dt_CFG.label_duration
+            self.stable_time = time.time() + cfg.label_duration
             self.last_label  = self.label
             self.final_label = ""
             self.sequence.clear()
@@ -202,262 +189,46 @@ class Detector:
         self.last_label = ""
         self.final_label = ""
 
-        self.model = None
-        self.labels = None
 
-        self.hands.close()
-        self.hands = None
-        self.hand_results = None
+def draw_landmarks(frame, hand_results, pose_results):
+    """
+    Vẽ khung xương:
+    - Điểm khớp (landmarks)
+    - Đường nối (HAND_CONNECTIONS, POSE_CONNECTIONS)
+    """
+    mp_hands   = mp.solutions.hands
+    mp_pose    = mp.solutions.pose
+    mp_drawing = mp.solutions.drawing_utils
 
-        self.pose.close()
-        self.pose = None
-        self.pose_results = None
-
-
-# --------------------------------------------
-# GENERAL UI SETUP
-# --------------------------------------------
-# 
-# Khởi tạo các đối tượng cơ bản trong
-# giao diện của module nhận diện cử chỉ tay.
-# --------------------------------------------
-class Interface(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        self.cameraLabel = QLabel()
-        self.cameraLabel.setMinimumSize(
-            CFG.cameraFrameSize[0],
-            CFG.cameraFrameSize[1]
-        )
-        self.cameraLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.cameraLabel.setStyleSheet("background:black;")
-
-        font = QFont("Arial", 16)
-        font.setBold(True)
-
-        self.lbPredict = QLabel("Prediction: ")
-        self.lbPredict.setFont(font)
-
-        self.lbConfidence = QLabel("Confidence: ")
-        self.lbConfidence.setFont(font)
-        
-        self.FPS = QLabel("FPS: ")
-        self.FPS.setFont(font)
-
-        button_layout = QVBoxLayout()
-        button_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-
-        self.start_btn = QPushButton("Start")
-        self.start_btn.setFixedWidth(CFG.button_width)
-
-        self.stop_btn  = QPushButton("Stop")
-        self.stop_btn.setFixedWidth(CFG.button_width)
-        self.stop_btn.setDisabled(True)
-
-        self.aud_btn = QPushButton("Read aloud")
-        self.aud_btn.setFixedWidth(CFG.button_width)
-        self.aud_btn.setCheckable(True)
-
-        button_layout.addWidget(self.start_btn)
-        button_layout.addWidget(self.stop_btn)
-        button_layout.addWidget(self.aud_btn)
-
-        bar1 = QProgressBar()
-        bar1.setStyleSheet(CFG.bar_style)
-        bar1.setFixedWidth(CFG.barMinWidth)
-        bar1.setValue(0)
-        
-        bar2 = QProgressBar()
-        bar2.setStyleSheet(CFG.bar_style)
-        bar2.setFixedWidth(CFG.barMinWidth)
-        bar2.setValue(0)
-        
-        bar3 = QProgressBar()
-        bar3.setStyleSheet(CFG.bar_style)
-        bar3.setFixedWidth(CFG.barMinWidth)
-        bar3.setValue(0)
-
-        prob_lbl1 = QLabel()
-        prob_lbl2 = QLabel()
-        prob_lbl3 = QLabel()
-
-        self.prob_elements = {
-            "labels": [prob_lbl1, prob_lbl2, prob_lbl3],
-            "bars": [bar1, bar2, bar3]
-        }
-
-        self.rightLayout = QVBoxLayout()
-        self.rightLayout.addWidget(self.lbPredict)
-        self.rightLayout.addWidget(self.lbConfidence)
-        self.rightLayout.addWidget(self.FPS)
-
-        self.rightLayout.addSpacing(20)
-
-        self.rightLayout.addWidget(prob_lbl1)
-        self.rightLayout.addWidget(bar1)
-
-        self.rightLayout.addSpacing(20)
-
-        self.rightLayout.addWidget(prob_lbl2)
-        self.rightLayout.addWidget(bar2)
-
-        self.rightLayout.addSpacing(20)
-
-        self.rightLayout.addWidget(prob_lbl3)
-        self.rightLayout.addWidget(bar3)
-
-        self.rightLayout.addStretch()
-
-        self.rightLayout.addLayout(button_layout)
-
-        self.stack = QStackedWidget()
-
-        self.mainLayout = QHBoxLayout(self)
-        self.mainLayout.addWidget(self.stack)
-        self.mainLayout.addSpacing(10)
-        self.mainLayout.addLayout(self.rightLayout)
-
-        self.camera_page = QWidget()
-        self.camera_page_layout = QVBoxLayout(self.camera_page)
-
-        self.selection_page = QWidget()
-        self.selection_page_layout = QVBoxLayout(self.selection_page)
-
-
-class ModuleSetUp(Interface):
-    def __init__(self):
-        super().__init__()
-        self.start_btn.clicked.connect(self.detector_init)
-        self.stop_btn.clicked.connect(self.stop_camera)
-        
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.read_frame)
-
-        self.frame_size = (1280, 720)
-
-        self.labels_file = CFG.labels
-        self.model_name  = CFG.model_name
-
-        self.prev_time = time.perf_counter()
-
-        self.selection_page_setup()
-
-        self.stack.addWidget(self.selection_page)
-        self.stack.addWidget(self.camera_page)
-
-    # Để subclass override
-    def detector_init(self): ...
-    def read_frame(self): ...
-
-    def selection_page_setup(self):
-        self.selection_page_layout.addStretch()
-
-        self.model_drop_list = QComboBox()
-        self.model_drop_list.setFixedWidth(200)
-        self.model_drop_list.addItems(os.listdir(CFG.models_dir))
-        self.model_drop_list.setCurrentText(CFG.model_name)
-        self.selection_page_layout.addWidget(self.model_drop_list)
-
-        self.labels_drop_list = QComboBox()
-        self.labels_drop_list.setFixedWidth(200)
-        self.labels_drop_list.addItems(os.listdir(CFG.labels_dir))
-        self.labels_drop_list.setCurrentText(CFG.labels)
-        self.selection_page_layout.addWidget(self.labels_drop_list)
-
-        self.refresh_btn = QPushButton("Refresh")
-        self.refresh_btn.setFixedWidth(CFG.button_width)
-
-        self.refresh_btn.clicked.connect(
-            lambda: (
-                self.model_drop_list.clear(),
-                self.model_drop_list.addItems(
-                    os.listdir(CFG.models_dir)
+    if hand_results and hand_results.multi_hand_landmarks:
+        for hand_landmarks in hand_results.multi_hand_landmarks:
+            mp_drawing.draw_landmarks(
+                frame,
+                hand_landmarks,
+                mp_hands.HAND_CONNECTIONS,
+                mp_drawing.DrawingSpec(
+                    color=COL.CYAN,
+                    thickness=-1,
+                    circle_radius=8
                 ),
-                self.model_drop_list.setCurrentText(CFG.model_name),
-
-                self.labels_drop_list.clear(),
-                self.labels_drop_list.addItems(
-                    os.listdir(CFG.labels_dir)
+                mp_drawing.DrawingSpec(
+                    color=(0, 220, 100),
+                    thickness=5
                 ),
-                self.labels_drop_list.setCurrentText(CFG.labels)
             )
+
+    if pose_results and pose_results.pose_landmarks:
+        mp_drawing.draw_landmarks(
+            frame,
+            pose_results.pose_landmarks,
+            mp_pose.POSE_CONNECTIONS,
+            mp_drawing.DrawingSpec(
+                color=COL.CYAN,
+                thickness=-1,
+                circle_radius=8
+            ),
+            mp_drawing.DrawingSpec(
+                color=(0, 220, 100),
+                thickness=5
+            ),
         )
-        self.selection_page_layout.addWidget(self.refresh_btn)
-        self.selection_page_layout.addStretch()
-
-    def prob_bar(self, top_idx: int = 3):
-        if self.detector.probs is None:
-            return
-        
-        probs = self.detector.probs
-        top_indices = np.argsort(probs)[-top_idx:][::-1]
-
-        for i, idx in enumerate(top_indices):
-            prob = probs[idx]
-
-            self.prob_elements["labels"][i].setText(self.labels[str(idx)])
-            self.prob_elements["bars"][i].setValue(int(prob*100))
-
-
-    def update_frame(self, frame):
-        frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        image = QImage(
-            frameRGB.data,
-            frameRGB.shape[1],
-            frameRGB.shape[0],
-            frameRGB.shape[1] * 3,
-            QImage.Format.Format_RGB888
-        )
-
-        image = image.scaled(
-            self.cameraLabel.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-        self.prob_bar()
-
-        self.cameraLabel.setPixmap(QPixmap.fromImage(image))
-
-    def stop_camera(self):
-        self.stack.setCurrentWidget(self.selection_page)
-        self.reset()
-
-    def reset(self):
-        if self.timer.isActive():
-            self.timer.stop()
-
-        self.cap.release()
-
-        if hasattr(self, "collector"):
-            self.collector = None
-            
-        delete_speaker(self.speaker_thread)
-        self.speaker_thread = None
-        
-        self.detector.reset()
-        self.detector = None
-
-        self.model = None
-        self.labels = None
-
-        keras.backend.clear_session()
-        gc.collect()
-
-        # --------------------------------------------
-        # RESET UI
-        # --------------------------------------------
-        self.start_btn.setEnabled(True)
-        self.stop_btn.setDisabled(True)
-
-        self.lbPredict.setText("Prediction: ")
-        self.lbConfidence.setText("Confidence: ")
-        self.FPS.setText("FPS: ")
-
-        for label in self.prob_elements["labels"]:
-            label.setText("")
-
-        for bar in self.prob_elements["bars"]:
-            bar.setValue(0)
-
