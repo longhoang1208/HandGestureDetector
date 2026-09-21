@@ -61,6 +61,7 @@ import resources_rc
 import sys
 import os
 import gc
+import shutil
 from pathlib import Path
 from _config import config
 
@@ -394,7 +395,21 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        Path(CFG.users_dir).mkdir(parents=True, exist_ok=True)
+        Path(
+            Path(CFG.users_dir) / "default_user"
+        ).mkdir(parents=True, exist_ok=True)
+
+        shutil.copytree(
+            CFG.models_dir,
+            Path(CFG.users_dir) / "default_user" / CFG.models_dir,
+            dirs_exist_ok=True
+        )
+
+        shutil.copytree(
+            CFG.labels_dir,
+            Path(CFG.users_dir) / "default_user" / CFG.labels_dir,
+            dirs_exist_ok=True
+        )
 
         self.stack = QStackedWidget()
         self.setWindowTitle("Hand Gesture Detector") # Title
