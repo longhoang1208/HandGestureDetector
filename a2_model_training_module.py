@@ -42,6 +42,7 @@ from _config import config as cf
 from PySide6.QtCore import QThread
 from PySide6.QtCore import Signal
 from PySide6.QtCore import Qt
+from PySide6.QtCore import QFileSystemWatcher
 
 from PySide6.QtGui import QPixmap
 
@@ -158,7 +159,7 @@ def build_model(timestep, n_features, label_map):
     return model
 
 
-def plot_history(history, train_plot: QLabel):
+def plot_history(history, train_plot: QLabel, plots_dir: Path):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
     # Loss
@@ -179,7 +180,7 @@ def plot_history(history, train_plot: QLabel):
 
     t = time.localtime()
     save_time = f"{t.tm_year}{t.tm_mon}{t.tm_mday}_{t.tm_hour}_{t.tm_min}"
-    save_path = f"{CFG.training_plot_dir}/train_plot_{save_time}.png"
+    save_path = f"{plots_dir}/train_plot_{save_time}.png"
 
     # Tạo thư mục lưu biểu đồ
     Path(save_path).parent.mkdir(parents=True, exist_ok=True)
@@ -201,7 +202,7 @@ def plot_history(history, train_plot: QLabel):
     )
 
 # CONFUSION MATRIX
-def plot_confusion_matrix(y_true, y_pred, label_map, cfs_matrix: QLabel):
+def plot_confusion_matrix(y_true, y_pred, label_map, cfs_matrix: QLabel, plots_dir: Path):
     cm = confusion_matrix(y_true, y_pred, normalize='true')
 
     class_names = [
@@ -226,7 +227,7 @@ def plot_confusion_matrix(y_true, y_pred, label_map, cfs_matrix: QLabel):
 
     t = time.localtime()
     save_time = f"{t.tm_year}{t.tm_mon}{t.tm_mday}_{t.tm_hour}_{t.tm_min}"
-    save_path = f"{CFG.training_plot_dir}/confusion_matrix_{save_time}.png"
+    save_path = f"{plots_dir}/confusion_matrix_{save_time}.png"
 
     # Tạo thư mục lưu biểu đồ
     Path(save_path).parent.mkdir(parents=True, exist_ok=True)
@@ -285,12 +286,16 @@ class TrainingWorker(QThread):
     # Thông báo lỗi
     training_error = Signal(str)
 
-    def __init__(self, labels_path, model_name, epochs, patience):
+    def __init__(self, labels_path, model_name, epochs, patience, models_dir: Path):
         super().__init__()
         self.labels_path = labels_path
-        self.model_name  = model_name
-        self.epochs      = epochs
-        self.patience    = patience
+        self.model_name = model_name
+        self.epochs = epochs
+        self.patience = patience
+
+        # Tạo thư mục lưu model
+        self.models_dir = models_dir
+        Path(self.models_dir).parent.mkdir(exist_ok=True)
 
     # Hàm run() mặc định được QThread gọi trong vòng lặp riêng.
     # Hàm này liên tục phát đi thông tin của quá trình huấn luyện.
@@ -351,12 +356,9 @@ class TrainingWorker(QThread):
             "val_acc"   : train_history.history["val_accuracy"],
         }
 
-        # Tạo thư mục lưu model
-        model_save_path = CFG.models_dir, f"{self.model_name}.keras"
-        Path(model_save_path).parent.mkdir(exist_ok=True)
 
         # Lưu model
-        model.save(model_save_path)
+        model.save(self.models_dir)
 
         y_pred_probs = model.predict(x_test)
         y_pred = np.argmax(y_pred_probs, axis=1)
@@ -367,8 +369,13 @@ class TrainingWorker(QThread):
 
 
 class TrainingModule(QWidget):
-    def __init__(self):
+    def __init__(self, user_name):
         super().__init__()
+
+        self.user_name = user_name
+        self.labels_dir = Path("Users") / self.user_name / CFG.labels_dir
+        self.models_dir = Path("Users") / self.user_name / CFG.models_dir
+        self.plots_dir  = Path("Users") / self.user_name / CFG.training_plot_dir
 
         self.mainLayout = QHBoxLayout(self)
         self.stack = QStackedWidget()
@@ -383,22 +390,21 @@ class TrainingModule(QWidget):
         # Droplist chọn bộ nhãn
         self.labels_drop_list = QComboBox()
         self.labels_drop_list.setFixedWidth(200)
-        self.labels_drop_list.addItems(os.listdir(CFG.labels_dir))
+        self.labels_drop_list.addItems(os.listdir(self.labels_dir))
 
         # Ô nhập liệu nhập tên model
         self.model_name_input = QLineEdit()
         self.model_name_input.setFixedWidth(200)
         self.model_name_input.setPlaceholderText("Enter your model name")
 
-        # Nút tải lại để cập nhật các file bộ nhãn mới
-        self.refresh_btn = QPushButton("Refresh")
-        self.refresh_btn.setFixedWidth(90)
-        self.refresh_btn.clicked.connect(self.refresh_label_list)
-
         # Nút xác nhận bộ nhãn và tên model
         self.confirm_btn = QPushButton("Confirm")
         self.confirm_btn.setFixedWidth(90)
         self.confirm_btn.clicked.connect(self.confirm_MnL)
+
+        self.watcher = QFileSystemWatcher()
+        self.watcher.addPath(str(self.labels_dir))
+        self.watcher.directoryChanged.connect(self.refresh_label_list)
 
         # Sắp xếp bố cục trang
         self.MnL_page_layout.addStretch()
@@ -406,7 +412,6 @@ class TrainingModule(QWidget):
         self.MnL_page_layout.addWidget(self.labels_drop_list)
         self.MnL_page_layout.addWidget(QLabel("Name your model"))
         self.MnL_page_layout.addWidget(self.model_name_input)
-        self.MnL_page_layout.addWidget(self.refresh_btn)
         self.MnL_page_layout.addWidget(self.confirm_btn)
         self.MnL_page_layout.addStretch()
 
@@ -492,8 +497,10 @@ class TrainingModule(QWidget):
 
     # Tải lại để cập nhật các file bộ nhãn mới
     def refresh_label_list(self):
+        self.labels_drop_list.blockSignals(True)
         self.labels_drop_list.clear()
-        self.labels_drop_list.addItems(os.listdir(CFG.labels_dir))
+        self.labels_drop_list.addItems(os.listdir(self.labels_dir))
+        self.labels_drop_list.blockSignals(False)
 
     # Xác nhận bộ nhãn và tên model
     def confirm_MnL(self):
@@ -514,10 +521,20 @@ class TrainingModule(QWidget):
             self.status_label.setText("⚠️ Chưa chọn bộ nhãn!")
             return
 
-        labels_path = os.path.join(CFG.labels_dir, self.selected_labels_file)
+        labels_path = os.path.join(
+            self.labels_dir,
+            self.selected_labels_file
+        )
 
         self.start_training_btn.setEnabled(False)
-        self.worker = TrainingWorker(labels_path, self.model_name, CFG.epochs, CFG.patience)
+        self.worker = TrainingWorker(
+            labels_path,
+            self.model_name,
+            CFG.epochs,
+            CFG.patience,
+            self.models_dir
+        )
+
         self.worker.epoch_progress.connect(self.on_epoch_progress)
         self.worker.training_done.connect(self.on_training_done)
         self.worker.training_error.connect(self.on_training_error)
@@ -546,8 +563,8 @@ class TrainingModule(QWidget):
             self.metrics_table.setItem(row, 0, QTableWidgetItem(str(k)))
             self.metrics_table.setItem(row, 1, QTableWidgetItem(f"{v:.4f}" if isinstance(v, float) else str(v)))
 
-        plot_history(history, self.train_plot)
-        plot_confusion_matrix(y_test, y_pred, label_map, self.cfs_matrix)
+        plot_history(history, self.train_plot, self.plots_dir)
+        plot_confusion_matrix(y_test, y_pred, label_map, self.cfs_matrix, self.plots_dir)
 
     def on_training_error(self, message):
         self.start_training_btn.setEnabled(True)

@@ -59,6 +59,11 @@ from b2_module2_multi_signs   import Module2
 
 import resources_rc
 import sys
+import os
+import gc
+import shutil
+from pathlib import Path
+from _config import config
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtWidgets import QHBoxLayout
@@ -67,19 +72,186 @@ from PySide6.QtWidgets import QWidget
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QStackedWidget
 from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QComboBox
+from PySide6.QtWidgets import QSizePolicy
+from PySide6.QtWidgets import QTreeView
+from PySide6.QtWidgets import QLineEdit
+from PySide6.QtWidgets import QFileSystemModel
 
+from PySide6.QtCore import QDir
+from PySide6.QtCore import QFileSystemWatcher
 from PySide6.QtGui  import QIcon
 from PySide6.QtGui  import QPixmap
+from PySide6.QtGui  import QFont
+
+from PySide6.QtCore import Qt
+
+
+CFG = config()
 
 
 # -------------------------------------------------------------
-# HOME PAGE
+# SELECT USER PAGE
 # -------------------------------------------------------------
-# 
-# Giao diện trang giới thiệu, hướng dẫn người dùng sử dụng
-# các tính năng của phần mềm.
-# -------------------------------------------------------------
-class HomaPage(QWidget):
+class SelectUserPage(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.page_layout = QHBoxLayout(self)
+        self.main_layout = QVBoxLayout()
+
+        self.user_list = QComboBox()
+        self.user_list.setFont(QFont('Arial', 16))
+        self.user_list.setFixedWidth(300)
+        self.user_list.setEditable(True)
+
+        # Hiển thị danh sách 
+        Path(CFG.users_dir).mkdir(parents=True, exist_ok=True)
+        self.refresh_users()
+
+        self.watcher = QFileSystemWatcher(self)
+        self.watcher.addPath(CFG.users_dir)
+        self.watcher.directoryChanged.connect(self.refresh_users)
+
+        # Select user button
+        self.select_btn = QPushButton("Select user name")
+        self.select_btn.setMaximumWidth(CFG.button_width)
+
+        # Create user button
+        self.create_btn = QPushButton("New user")
+        self.create_btn.setMaximumWidth(200)
+
+        # Arrange layout
+        self.main_layout.addStretch()
+        self.main_layout.addWidget(self.user_list)
+        self.main_layout.addWidget(self.select_btn)
+        self.main_layout.addStretch()
+
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.file_model = QFileSystemModel()
+        self.file_model.setFilter(
+            QDir.Filter.AllDirs |
+            QDir.Filter.Files |
+            QDir.Filter.NoDotAndDotDot
+        )
+        self.file_model.setRootPath(CFG.users_dir)
+
+        self.tree = QTreeView()
+        self.tree.setModel(self.file_model)
+        self.tree.setHeaderHidden(True)
+
+        for columns_idx in range(1, self.file_model.columnCount()):
+            self.tree.hideColumn(columns_idx)
+
+        self.tree.setRootIndex(
+            self.file_model.index(CFG.users_dir)
+        )
+        self.tree.setMaximumWidth(200)
+
+        self.right_layout = QVBoxLayout()
+        self.right_layout.addWidget(self.tree)
+        self.right_layout.addWidget(self.create_btn)
+
+        self.page_layout.addLayout(self.main_layout)
+        self.page_layout.addLayout(self.right_layout)
+
+    def refresh_users(self, changed_path=None):
+        self.user_list.blockSignals(True)
+        self.user_list.clear()
+        self.user_list.addItems(os.listdir(CFG.users_dir))
+        self.user_list.blockSignals(False)
+
+
+class CreateUserPage(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.page_layout = QHBoxLayout(self)
+        self.main_layout = QVBoxLayout()
+
+        self.input = QLineEdit()
+        self.input.setPlaceholderText("Enter new user name")
+        self.input.setMaximumSize(CFG.inputSize[0], CFG.inputSize[1])
+
+        self.create_btn = QPushButton("Create user")
+        self.create_btn.setMaximumWidth(CFG.button_width)
+        self.create_btn.clicked.connect(self.create_user)
+
+        self.file_model = QFileSystemModel()
+        self.file_model.setFilter(
+            QDir.Filter.AllDirs |
+            QDir.Filter.Files |
+            QDir.Filter.NoDotAndDotDot
+        )
+        self.file_model.setRootPath(CFG.users_dir)
+
+        self.tree = QTreeView()
+        self.tree.setModel(self.file_model)
+        self.tree.setHeaderHidden(True)
+
+        for columns_idx in range(1, self.file_model.columnCount()):
+            self.tree.hideColumn(columns_idx)
+
+        self.tree.setRootIndex(
+            self.file_model.index(CFG.users_dir)
+        )
+        self.tree.setMaximumWidth(200)
+
+        self.right_layout = QVBoxLayout()
+        self.right_layout.addWidget(self.tree)
+
+        self.main_layout.addStretch()
+        self.main_layout.addWidget(self.input)
+        self.main_layout.addWidget(self.create_btn)
+        self.main_layout.addStretch()
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        self.page_layout.addLayout(self.main_layout)
+        self.page_layout.addLayout(self.right_layout)
+
+    def create_user(self):
+        if self.input.text():
+            new_user_name = self.input.text()
+            new_user_dir = Path(CFG.users_dir) / new_user_name
+            Path(new_user_dir).mkdir(parents=True)
+
+            new_user_m_dir = Path(new_user_dir) / CFG.models_dir
+            Path(new_user_m_dir).mkdir(parents=True)
+
+            new_user_l_dir = Path(new_user_dir) / CFG.labels_dir
+            Path(new_user_l_dir).mkdir(parents=True)
+
+
+class ImageLabel(QLabel):
+    def __init__(self, pixmap: QPixmap):
+        super().__init__()
+
+        self.original_pixmap = pixmap
+
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
+        )
+
+        self.update_pixmap()
+
+    def update_pixmap(self):
+        scaled = self.original_pixmap.scaled(
+            self.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+
+        self.setPixmap(scaled)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_pixmap()
+
+
+class HomePage(QWidget):
     def __init__(self):
         super().__init__()
         home_page_layout = QVBoxLayout(self)
@@ -91,11 +263,15 @@ class HomaPage(QWidget):
         num_page = 13
         pages = {}
         for i in range(num_page):
-            label = QLabel()
-            label.setPixmap(
+            label = ImageLabel(
                 QPixmap(f":/resources/Slide{i+1}.PNG")
             )
-            label.setScaledContents(True)
+            
+            label.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Expanding
+            )
+
             pages[i] = QWidget()
             layout = QVBoxLayout(pages[i])
             layout.addWidget(label)
@@ -127,6 +303,7 @@ class HomaPage(QWidget):
                 )
             )
         )
+        
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         button_layout.addWidget(prev_btn)
@@ -137,15 +314,11 @@ class HomaPage(QWidget):
         home_page_layout.addLayout(button_layout)
 
 
-# -------------------------------------------------------------
-# MAIN WINDOW
-# -------------------------------------------------------------
-# 
-# Giao diện chính điều khiển phần mềm, bao gồm tất cả các trang
-# -------------------------------------------------------------
-class MainWindow(QWidget):
-    def __init__(self):
+class ModulesWindow(QWidget):
+    def __init__(self, user_name):
         super().__init__()
+
+        self.user_name = user_name
 
         self.setWindowTitle("Hand Gesture Detector")
 
@@ -198,17 +371,109 @@ class MainWindow(QWidget):
         mainLayout.addWidget(mainWidget)
         mainLayout.addLayout(bottomLayout)
 
-        home_page       = HomaPage()
-        module1_window  = Module1()
-        module2_window  = Module2()
-        collect_window  = CollectModule()
-        training_window = TrainingModule()
+        home_page       = HomePage()
+        module1_window  = Module1(self.user_name)
+        module2_window  = Module2(self.user_name)
+        collect_window  = CollectModule(self.user_name)
+        training_window = TrainingModule(self.user_name)
 
         mainWidget.addWidget(home_page)
         mainWidget.addWidget(module1_window)
         mainWidget.addWidget(module2_window)
         mainWidget.addWidget(collect_window)
         mainWidget.addWidget(training_window)
+
+
+
+# -------------------------------------------------------------
+# MAIN WINDOW
+# -------------------------------------------------------------
+# 
+# Giao diện chính điều khiển phần mềm, bao gồm tất cả các trang
+# -------------------------------------------------------------
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        Path(
+            Path(CFG.users_dir) / "default_user"
+        ).mkdir(parents=True, exist_ok=True)
+
+        shutil.copytree(
+            CFG.models_dir,
+            Path(CFG.users_dir) / "default_user" / CFG.models_dir,
+            dirs_exist_ok=True
+        )
+
+        shutil.copytree(
+            CFG.labels_dir,
+            Path(CFG.users_dir) / "default_user" / CFG.labels_dir,
+            dirs_exist_ok=True
+        )
+
+        self.stack = QStackedWidget()
+        self.setWindowTitle("Hand Gesture Detector") # Title
+        self.app_layout = QVBoxLayout(self)          # Layout
+
+        self.user_name = ""
+
+        self.create_user_page = CreateUserPage()
+
+        self.select_user_page = SelectUserPage()
+        self.select_user_page.select_btn.clicked.connect(self.select_user)
+        self.select_user_page.create_btn.clicked.connect(
+            lambda: (
+                self.stack.setCurrentWidget(self.create_user_page)
+            )
+        )
+
+        self.stack.addWidget(self.select_user_page)
+        self.stack.addWidget(self.create_user_page)
+
+        self.quit_button = QPushButton("Quit")
+        self.quit_button.clicked.connect(self.quit_user)
+
+        self.app_layout.addWidget(self.stack)
+        self.app_layout.addWidget(self.quit_button)
+
+    # Select user
+    def select_user(self):
+        self.user_name = self.select_user_page.user_list.currentText()
+        if (
+            not self.user_name or
+            self.user_name not in os.listdir(CFG.users_dir)
+        ):
+            self.user_name = ""
+            self.select_user_page.user_list.setCurrentText("Invalid user name")
+        else:
+            Path(Path(CFG.users_dir) / self.user_name / CFG.models_dir).mkdir(parents=True, exist_ok=True)
+            Path(Path(CFG.users_dir) / self.user_name / CFG.labels_dir).mkdir(parents=True, exist_ok=True)
+
+            self.modules_window = ModulesWindow(self.user_name)
+            self.stack.addWidget(self.modules_window)
+            self.stack.setCurrentWidget(self.modules_window)
+
+        # Debug
+        print("user name: ", self.user_name if self.user_name else "Invalid")
+
+    # Quit user
+    def quit_user(self):
+        # Clear user name
+        self.user_name = ""
+        self.stack.setCurrentWidget(self.select_user_page)
+
+        # Delete existing objects
+        if hasattr(self, "modules_window"):
+            self.stack.removeWidget(self.modules_window)
+            del self.modules_window
+        gc.collect()
+
+
+        # Return to the first page (select user)
+        self.stack.setCurrentWidget(self.select_user_page)
+
+        # Debug
+        print("user name cleared")
 
 
 def main():

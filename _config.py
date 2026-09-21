@@ -10,11 +10,13 @@
 
 class config:
     def __init__(self):
-        self.labels_dir = 'labels'
-        self.labels     = 'asl_labels.json'
+        self.users_dir  = "Users"
+        
+        self.labels_dir = "labels"
+        self.labels     = "asl_labels.json"
 
-        self.models_dir = 'models'
-        self.model_name = 'asl_model.keras'
+        self.models_dir = "models"
+        self.model_name = "asl_model.keras"
 
         self.data_dir   = "data/processed"
 
