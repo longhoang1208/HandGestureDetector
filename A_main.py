@@ -101,7 +101,7 @@ class SelectUserPage(QWidget):
         self.main_layout = QVBoxLayout()
 
         self.user_list = QComboBox()
-        self.user_list.setFont(QFont('Arial', 16))
+        self.user_list.setFont(QFont('Arial', 14))
         self.user_list.setFixedWidth(300)
         self.user_list.setEditable(True)
 
@@ -221,6 +221,8 @@ class CreateUserPage(QWidget):
 
             new_user_l_dir = Path(new_user_dir) / CFG.labels_dir
             Path(new_user_l_dir).mkdir(parents=True)
+
+            self.input.clear()
 
 
 class ImageLabel(QLabel):
