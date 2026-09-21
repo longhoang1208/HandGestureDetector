@@ -8,9 +8,6 @@
 !voices/
 !voices/**
 
-!old_ver/
-!old_ver/**
-
 !.gitignore
 !_config.py
 !_detector.py
