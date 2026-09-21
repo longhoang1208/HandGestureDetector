@@ -2,12 +2,12 @@
 # DETECTOR MODULE
 # ==================================================
 # File name   : _detector.py
-# Description : Module xử lý dữ liệu từ camera
-#               và dự đoán cử chỉ tay sử dụng
-#               mô hình BiLSTM. Đồng thời khởi
-#               tạo giao diện chung cơ bản cho
-#               2 module nhận diện cử chỉ tay
-#               sau này: single_sign và multi_sign.
+# Description : Camera data processing module for
+#               hand gesture recognition using a
+#               BiLSTM model. It also initializes
+#               a base shared interface for two
+#               future gesture recognition modules:
+#               single_sign and multi_sign.
 # --------------------------------------------------
 
 
@@ -38,7 +38,6 @@ from PySide6.QtWidgets import QStackedWidget
 
 from _landmark   import extract_landmarks
 from _config     import config
-from _config     import color
 from _tts_module import delete_speaker
 
 # -----------------------------------
@@ -61,16 +60,15 @@ class DetectorConfigurations:
 
 Dt_CFG = DetectorConfigurations()
 CFG = config()
-COL = color()
 
 
 # --------------------------------------------
 # DETECTOR
 # --------------------------------------------
 # 
-# Trích xuất đặc trưng.
-# Chuẩn hóa dữ.
-# Ghép chuỗi & nhận diện ký hiệu.
+# - Extract landmarks.
+# - Normalize data.
+# - Detect gestures.
 # --------------------------------------------
 
 class Detector:
@@ -108,8 +106,8 @@ class Detector:
 
     def _mp_init(self):
         """
-        Khởi tạo đối tượng hands và pose
-        từ mediapipe solutions
+        Initialize hands and pose
+        objects from mediapipe solutions
         """
         mp_hands = mp.solutions.hands
         self.hands = mp_hands.Hands(
@@ -126,15 +124,8 @@ class Detector:
         )
         self.pose_results = None
 
-    def detect(self, sequence):
-        """
-        Dự đoán xác suất dựa trên chuỗi dữ liệu,
-        xác nhận kết quả nếu xác suất lớn hơn 70%.
 
-        Sau khi có kết quả dự đoán, đợi 0.1 giây.
-        Nếu trong lúc đợi mà nhãn không đổi mới hiển thị,
-        nếu không thì reset thời gian đợi và xóa chuỗi dữ liệu.
-        """
+    def detect(self, sequence):
         sequence = np.array(sequence)
         sequence = np.expand_dims(sequence, axis=0)
 
@@ -161,16 +152,8 @@ class Detector:
             self.final_label = self.label
             self.speak = self.final_label
 
-    def detection(self, timestep: int, stride: int) -> str:
-        """
-        Trích xuất các landmarks và chuẩn hóa,
-        nếu không thấy tay thì mặc định dữ liệu
-        trong frame đó là 0.
 
-        Ghép dữ liệu các frame thành chuỗi dữ liệu,
-        gọi hàm dự đoán nhãn. Thay ký tự "_" thành
-        khoảng trắng.
-        """
+    def detection(self, timestep: int, stride: int) -> str:
         if self.hand_results.multi_hand_landmarks:
             lm = extract_landmarks(self.hand_results, self.pose_results)
         else:
@@ -189,15 +172,8 @@ class Detector:
 
         return self.final_label
     
-    def reset(self):
-        """
-        Hủy toàn bộ dữ liệu và kết quả dự đoán
-        khi dừng chương trình để đổi mô hình.
 
-        - Xóa chuỗi dữ liệu
-        - Xóa xác suất dự đoán
-        - Xóa các nhãn đã dự đoán
-        """
+    def reset(self):
         self.sequence.clear()
         self.probs = None
         self.label = ""
@@ -218,10 +194,6 @@ class Detector:
 
 # --------------------------------------------
 # GENERAL UI SETUP
-# --------------------------------------------
-# 
-# Khởi tạo các đối tượng cơ bản trong
-# giao diện của module nhận diện cử chỉ tay.
 # --------------------------------------------
 class Interface(QWidget):
     def __init__(self):

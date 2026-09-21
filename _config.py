@@ -2,15 +2,15 @@
 # CONFIGURATIONS
 # ==================================================
 # File name   : _configurations.py
-# Description : khởi tạo các biến chung giữa các
-#               module, bao gồm các đường dẫn và
-#               các cấu hình giao diện.
+# Description : Initialize the common variables
+#               among modules.
 # --------------------------------------------------
 
 
 class config:
     def __init__(self):
         self.users_dir  = "Users"
+        self.default_user_dir = "default_user"
         
         self.labels_dir = "labels"
         self.labels     = "asl_labels.json"
@@ -46,14 +46,3 @@ class config:
         self.minNumSample = 10
         self.maxNumSample = 50
 
-
-class color:
-    def __init__(self):
-        self.BLACK = (  0,   0,   0)
-        self.GRAY  = ( 30,  30,  30)
-        self.GREEN = ( 76, 153,   0)
-        self.CYAN  = (255, 200,   0)
-        self.WHITE = (255, 255, 255)
-        self.RED   = ( 50,  50, 220)
-        self.AMBER = (  0, 180, 255)
-        self.NAVY  = ( 60,  30,  10)

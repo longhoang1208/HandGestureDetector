@@ -12,21 +12,16 @@ from _detector import ModuleSetUp
 from _detector import Detector
 from _landmark import draw_landmarks
 from _config  import config
-from _config  import color
 
 import cv2
-import os
+import time
 from pathlib import Path
 import json
 import tensorflow as tf
 
 from PySide6.QtWidgets import QLabel
 
-import time
-
-
 CFG = config()
-COL = color()
 
 
 class Module1(ModuleSetUp):

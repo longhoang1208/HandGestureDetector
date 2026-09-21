@@ -2,8 +2,8 @@
 # MODEL TRAINING MODULE
 # ==================================================
 # File name   : a2_model_training_module.py
-# Description : Huấn luyện mô hình BiLSTM dựa trên
-#               tập dữ liệu đã được thu thập.
+# Description : Train BiLSTM model from the
+#               collected dataset.
 # --------------------------------------------------
 
 
@@ -62,9 +62,8 @@ from PySide6.QtWidgets import QLineEdit
 # ---------------------------------------------------------
 # CONFIGURATIONS
 # ---------------------------------------------------------
-# Description : Khởi tạo các đường dẫn và các tham số
-#               trong kiến trúc mô hình và quá trình
-#               huấn luyện.
+# Description : Initialize paths and parameters for the
+#               training process.
 # ---------------------------------------------------------
 
 class config(cf):
@@ -123,10 +122,6 @@ def split_train_test(samples, label_map):
 
     return x_train, y_train, x_test, y_test, label_map
 
-
-def train_model(labels_path, model_name, epochs, patience):
-    x_train, y_train, x_test, y_test, label_map = get_samples(labels_path)
-    (timestep, n_features) = (x_train.shape[1], x_train.shape[2])
 
 def build_model(timestep, n_features, label_map):
     # Sắp xếp layers
@@ -273,8 +268,8 @@ def evaluation(model, history, x_test, y_test):
 
 
 """
-Tạo luồn traing model trong QThread để
-không đóng băng UI.
+Create model training thread in QThread
+so that it does not freeze the UI.
 """
 class TrainingWorker(QThread):
     # current epoch, total epoch, logs
@@ -283,7 +278,7 @@ class TrainingWorker(QThread):
     # history, eval_metrics, y_test, y_pred, label_map
     training_done  = Signal(dict, dict, np.ndarray, np.ndarray, dict)
 
-    # Thông báo lỗi
+    # Error signal
     training_error = Signal(str)
 
     def __init__(self, labels_path, model_name, epochs, patience, models_dir: Path):
@@ -293,12 +288,12 @@ class TrainingWorker(QThread):
         self.epochs = epochs
         self.patience = patience
 
-        # Tạo thư mục lưu model
+        # Create model save directory
         self.models_dir = models_dir
         Path(self.models_dir).parent.mkdir(exist_ok=True)
 
-    # Hàm run() mặc định được QThread gọi trong vòng lặp riêng.
-    # Hàm này liên tục phát đi thông tin của quá trình huấn luyện.
+    # run() function will be called by QThread in a seperated thread.
+    # This function will emit signals non-stop.
     def run(self):
         try:
             history, eval_metrics, y_test, y_pred, label_map = self.train()
@@ -306,7 +301,7 @@ class TrainingWorker(QThread):
         except Exception as e:
             self.training_error.emit(str(e))
 
-    # Huấn luyện và lưu mô hình
+    # Train and save model
     def train(self):
         samples, label_map = get_samples(self.labels_path)
         x_train, y_train, x_test, y_test, label_map = split_train_test(samples, label_map)
@@ -332,8 +327,8 @@ class TrainingWorker(QThread):
 
         worker = self
         class QtBridgeCallback(Callback):
-            # Callback của Keras tự động gọi hàm on_epoch_end()
-            # Override on_epoch_end của callback
+            # Callback of Keras automatically call on_epoch_end()
+            # Override on_epoch_end of callback
             def on_epoch_end(self, epoch, logs=None):
                 worker.epoch_progress.emit(epoch+1, worker.epochs, logs or {})
 
@@ -357,7 +352,7 @@ class TrainingWorker(QThread):
         }
 
 
-        # Lưu model
+        # Save model
         model.save(self.models_dir)
 
         y_pred_probs = model.predict(x_test)
@@ -382,22 +377,22 @@ class TrainingModule(QWidget):
         self.mainLayout.addWidget(self.stack)
 
         # ---------------------------------------
-        # TRANG 1 - CHỌN BỘ NHÃN & ĐẶT TÊN MODEL
+        # PAGE 1 - SELECT LABELS & NAME MODEL
         # ---------------------------------------
         self.MnL_page = QWidget()
         self.MnL_page_layout = QVBoxLayout(self.MnL_page)
 
-        # Droplist chọn bộ nhãn
+        # Labels droplist
         self.labels_drop_list = QComboBox()
         self.labels_drop_list.setFixedWidth(200)
         self.labels_drop_list.addItems(os.listdir(self.labels_dir))
 
-        # Ô nhập liệu nhập tên model
+        # Model name input
         self.model_name_input = QLineEdit()
         self.model_name_input.setFixedWidth(200)
         self.model_name_input.setPlaceholderText("Enter your model name")
 
-        # Nút xác nhận bộ nhãn và tên model
+        # Confirm button
         self.confirm_btn = QPushButton("Confirm")
         self.confirm_btn.setFixedWidth(90)
         self.confirm_btn.clicked.connect(self.confirm_MnL)
@@ -406,7 +401,7 @@ class TrainingModule(QWidget):
         self.watcher.addPath(str(self.labels_dir))
         self.watcher.directoryChanged.connect(self.refresh_label_list)
 
-        # Sắp xếp bố cục trang
+        # Arrange elements
         self.MnL_page_layout.addStretch()
         self.MnL_page_layout.addWidget(QLabel("Select labels"))
         self.MnL_page_layout.addWidget(self.labels_drop_list)
@@ -416,9 +411,9 @@ class TrainingModule(QWidget):
         self.MnL_page_layout.addStretch()
 
         # ---------------------------------------
-        # TRANG 2 - BẮT ĐẦU HUẤN LUYỆN
+        # PAGE 2 - START TRAINING
         # ---------------------------------------
-        # Khởi tạo trang
+        # Create page
         self.training_page = QWidget()
         self.training_page_layout = QVBoxLayout(self.training_page)
 
@@ -426,12 +421,12 @@ class TrainingModule(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setStyleSheet(CFG.bar_style)
 
-        # Nút bắt đầu huấn luyện
+        # Start training button
         self.start_training_btn = QPushButton("Start training")
         self.start_training_btn.setFixedWidth(CFG.button_width)
         self.start_training_btn.clicked.connect(self.start_training)
 
-        # Nút quay lại trang trước
+        # Return to previous page button
         self.go_back_btn = QPushButton("Back")
         self.go_back_btn.setFixedWidth(CFG.button_width)
         self.go_back_btn.clicked.connect(
@@ -442,7 +437,7 @@ class TrainingModule(QWidget):
             )
         )
 
-        # Sắp xếp bố cục trang
+        # Arrange elements
         self.training_page_layout.addStretch()
         self.training_page_layout.addWidget(self.status_label)
         self.training_page_layout.addWidget(self.progress_bar)
@@ -451,35 +446,35 @@ class TrainingModule(QWidget):
         self.training_page_layout.addStretch()
 
         # ---------------------------------------
-        # TRANG 3 - KẾT QUẢ HUẤN LUYỆN
+        # PAGE 3 - TRAINING RESULT
         # ---------------------------------------
         self.result_page = QWidget()
         self.result_page_layout = QVBoxLayout(self.result_page)
 
-        # Bảng thông sô kết quả huấn luyện
+        # Training results table
         self.metrics_table = QTableWidget()
         self.metrics_table.setFixedWidth(500)  # chiều rộng bảng
 
         self.plot_layout = QHBoxLayout()
 
-        # Ô hiển thị training plot
+        # Training plot label
         self.train_plot = QLabel()
         self.train_plot.setFixedSize(700, 350)
 
-        # Ô hiển thị confusion matrix
+        # Confusion matrix label
         self.cfs_matrix = QLabel()
         self.cfs_matrix.setFixedSize(400, 350)
 
-        # Sắp xếp các biểu đò
+        # Arrange plots
         self.plot_layout.addWidget(self.train_plot)
         self.plot_layout.addWidget(self.cfs_matrix)
 
-        # Nút quay về trang đầu, huấn luyện lại
+        # Redo button: go to PAGE 1
         self.redo_btn = QPushButton("Redo")
         self.redo_btn.setFixedWidth(90)
         self.redo_btn.clicked.connect(self.redo)
 
-        # Sắp xếp bố cục trang
+        # Arrange elements
         self.result_page_layout.addStretch()
         self.result_page_layout.addLayout(self.plot_layout)
         self.result_page_layout.addWidget(self.metrics_table)
@@ -487,7 +482,7 @@ class TrainingModule(QWidget):
         self.result_page_layout.addStretch()
 
         # ---------------------------------------
-        # SẮP XẾP THỨ TỰ CÁC TRANG
+        # ARRANGE PAGES ORDER
         # ---------------------------------------
         self.stack.addWidget(self.MnL_page)
         self.stack.addWidget(self.training_page)
@@ -495,14 +490,14 @@ class TrainingModule(QWidget):
 
         self.selected_labels_file = None
 
-    # Tải lại để cập nhật các file bộ nhãn mới
+    # refresh label list: update directory changes
     def refresh_label_list(self):
         self.labels_drop_list.blockSignals(True)
         self.labels_drop_list.clear()
         self.labels_drop_list.addItems(os.listdir(self.labels_dir))
         self.labels_drop_list.blockSignals(False)
 
-    # Xác nhận bộ nhãn và tên model
+    # Confrim selected labels & model name
     def confirm_MnL(self):
         if not self.model_name_input.text():
             self.model_name_input.setText(
@@ -515,7 +510,7 @@ class TrainingModule(QWidget):
 
         self.stack.setCurrentWidget(self.training_page)
 
-    # Bắt đầu huấn luyện model
+    # Start training model
     def start_training(self):
         if not self.selected_labels_file:
             self.status_label.setText("⚠️ Chưa chọn bộ nhãn!")

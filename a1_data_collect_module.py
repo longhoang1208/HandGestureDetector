@@ -2,24 +2,23 @@
 # DATA COLLECT MODULE
 # ==================================================
 # File name   : a1_data_collect_module.py
-# Description : module thu thập dữ liệu
-#               huấn luyện mô hình.
+# Description : Training dataset collecting module.
 # 
 # --------------------------------------------------
-# CẤU TRÚC TỔ CHỨC DỮ LIỆU
+# DATA SAVING STRUCTURE
 # --------------------------------------------------
 # data/
 # │
-# ├── processed/        <- dữ liệu để huấn luyện
-# │   ├── Xin chào/     <- tên nhãn
-# │   │   ├── 0.npy     <- video mẫu
+# ├── processed/        <- Collected dataset
+# │   ├── Xin chào/     <- Label name
+# │   │   ├── 0.npy     <- processed data
 # │   │   ├── 1.npy
 # │   │   └── ...
 # │   └── ...
 # │
 # └── training_plot/    <- biểu đồ
 #     ├── training_plot.png     <- accuracy, loss
-#     └── confusion_matrix.png  <- ma trận nhầm lẫn
+#     └── confusion_matrix.png  <- Confusion matrix
 # --------------------------------------------------
 
 
@@ -28,7 +27,6 @@ from _landmark import extract_landmarks
 from _landmark import draw_landmarks
 from _landmark import lm_shape
 from _config   import config
-from _config   import color
 
 import cv2
 import mediapipe as mp
@@ -54,7 +52,6 @@ from PySide6.QtWidgets import QSpinBox
 from PySide6.QtWidgets import QStackedWidget
 
 
-COL    = color()
 CFG    = config()
 Dt_CFG = DetectorConfigurations()
 
@@ -72,13 +69,13 @@ class Interface(QWidget):
         self.mainLayout.addWidget(self.stack)
 
         # ---------------------------------------
-        # TRANG 1 - TẠO FILE LƯU BỘ NHÃN
+        # PAGE 1 - CREATE LABEL FILE
         # ---------------------------------------
-        # Khởi tạo trang
+        # Create page
         self.page_create_file = QWidget()
         self.page_create_file_layout = QVBoxLayout(self.page_create_file)
 
-        # Đặt tên cho file bộ nhãn
+        # Name label file
         self.label_name_input = QLineEdit()
         self.label_name_input.setFixedSize(
             CFG.inputSize[0],
@@ -86,25 +83,25 @@ class Interface(QWidget):
         )
         self.label_name_input.setPlaceholderText("Enter label file name")
 
-        # Lưu file bộ nhãn lần đầu tiên tạo
-        self.save_label_file_btn1 = QPushButton("Save file")
-        self.save_label_file_btn1.setFixedWidth(CFG.button_width)
+        # Create file button
+        self.create_label_file_btn = QPushButton("Save file")
+        self.create_label_file_btn.setFixedWidth(CFG.button_width)
 
-        # Sắp xếp bố cục trang
+        # Arrange elements
         self.page_create_file_layout.addStretch()
         self.page_create_file_layout.addWidget(self.label_name_input)
-        self.page_create_file_layout.addWidget(self.save_label_file_btn1)
+        self.page_create_file_layout.addWidget(self.create_label_file_btn)
         self.page_create_file_layout.addStretch()
 
 
         # ---------------------------------------
-        # TRANG 2 - GHI NHÃN
+        # PAGE 2 - LABELING
         # ---------------------------------------
-        # Khởi tạo trang
+        # Create page
         self.page_labeling = QWidget()
         self.page_labeling_layout = QVBoxLayout(self.page_labeling)
 
-        # Nhập nhãn
+        # Label input
         self.label_input = QLineEdit()
         self.label_input.setFixedSize(
             CFG.inputSize[0],
@@ -112,26 +109,26 @@ class Interface(QWidget):
         )
         self.label_input.setPlaceholderText("Enter your label")
 
-        # Xác nhận ghi nhãn
+        # Confirm label button
         self.confirm_lb_btn = QPushButton("Confirm")
         self.confirm_lb_btn.setFixedWidth(CFG.button_width)
 
-        # Lưu file bộ nhãn sau khi ghi nhãn xong
-        self.save_label_file_btn2 = QPushButton("Save file")
-        self.save_label_file_btn2.setFixedWidth(CFG.button_width)
+        # Save label file after labeling button
+        self.save_label_file_btn = QPushButton("Save file")
+        self.save_label_file_btn.setFixedWidth(CFG.button_width)
 
-        # Sắp xếp bố cục trang
+        # Arrange elements
         self.page_labeling_layout.addStretch()
         self.page_labeling_layout.addWidget(self.label_input)
         self.page_labeling_layout.addWidget(self.confirm_lb_btn)
-        self.page_labeling_layout.addWidget(self.save_label_file_btn2)
+        self.page_labeling_layout.addWidget(self.save_label_file_btn)
         self.page_labeling_layout.addStretch()
 
 
         # ---------------------------------------
-        # TRANG 3 - CHỌN SỐ LƯỢNG MẪU
+        # PAGE 3 - SELECT NUMBER OF SAMPLES
         # ---------------------------------------
-        # Khởi tạo trang
+        # Create page
         self.page_num_sample = QWidget()
         self.page_num_sample_layout = QVBoxLayout(self.page_num_sample)
 
@@ -143,11 +140,11 @@ class Interface(QWidget):
 
         self.num_sample_select.setFixedSize(100, 50)
 
-        # Xác nhận số lượng mẫu
+        # Confirm numer of samples
         self.num_samp_confirm_btn = QPushButton("Confirm")
         self.num_samp_confirm_btn.setFixedWidth(CFG.button_width)
 
-        # Sắp xếp bố cục trang
+        # Arrange elements
         self.page_num_sample_layout.addStretch()
         self.page_num_sample_layout.addWidget(self.num_sample_select)
         self.page_num_sample_layout.addWidget(self.num_samp_confirm_btn)
@@ -155,13 +152,13 @@ class Interface(QWidget):
 
 
         # ---------------------------------------
-        # TRANG 4 - GHI HÌNH
+        # PAGE 4 - RECORD
         # ---------------------------------------
-        # Khởi tạo trang
+        # Create page
         self.page_collect = QWidget()
         self.page_collect_layout = QHBoxLayout(self.page_collect)
 
-        # Khởi tạo khung hình camera
+        # Create camera frame
         self.cameraLabel = QLabel()
         self.cameraLabel.setMinimumSize(
             CFG.cameraFrameSize[0],
@@ -192,21 +189,21 @@ class Interface(QWidget):
         self.seq_count_bar.setStyleSheet(CFG.bar_style)
         self.seq_count_bar.setFixedWidth(CFG.barMinWidth)
 
-        # Sắp xếp bố cục trang
+        # Arrange elements
         self.page_collect_layout.addLayout(self.camera_layout)
         self.page_collect_layout.addSpacing(10)
         self.page_collect_layout.addLayout(self.right_layout)
 
         self.camera_layout.addWidget(self.cameraLabel)
 
-        # Set font chữ
+        # Set font
         font = QFont("Arial", 16)
         font.setBold(True)
 
         self.current_label = QLabel("Current label:")
         self.current_label.setFont(font)
 
-        # Sắp xếp các thành phần của SIDEBAR bên phải
+        # Arrange SIDEBAR elements
         self.right_layout.addWidget(self.current_label)
 
         self.right_layout.addWidget(QLabel("frame count"))
@@ -221,7 +218,7 @@ class Interface(QWidget):
 
         self.right_layout.addStretch()
 
-        # Sắp xếp các nút bấm
+        # Arrange buttons
         button_layout = QVBoxLayout()
         button_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
@@ -233,7 +230,7 @@ class Interface(QWidget):
         self.right_layout.addLayout(button_layout)
 
         # --------------------------------------------------
-        # SẮP XẾP THỨ TỰ CÁC TRANG
+        # ARRANGE PAGES ORDER
         # --------------------------------------------------
         self.stack.addWidget(self.page_create_file)
         self.stack.addWidget(self.page_labeling)
@@ -246,10 +243,10 @@ class Interface(QWidget):
 # ----------------------------------------------------------
 # 
 # Description:
-#   - Tạo file
-#   - Ghi nhãn
-#   - Lưu file
-#   - Thu dữ liệu
+#   - Create file
+#   - Labeling
+#   - Save file
+#   - Save processed data
 # ----------------------------------------------------------
 class CollectModule(Interface):
     def __init__(self, user_name):
@@ -274,8 +271,8 @@ class CollectModule(Interface):
         self.label_idx = 0
         self.start_collecting_data = False
 
-        self.save_label_file_btn1.clicked.connect(self.save_label_file1)
-        self.save_label_file_btn2.clicked.connect(self.save_label_file2)
+        self.create_label_file_btn.clicked.connect(self.create_label_file)
+        self.save_label_file_btn.clicked.connect(self.save_label_file)
 
         self.confirm_lb_btn.clicked.connect(self.confirm_label)
         self.num_samp_confirm_btn.clicked.connect(self.confirm_num_sample)
@@ -283,7 +280,7 @@ class CollectModule(Interface):
         self.start_btn.clicked.connect(self.enable_collect_data)
         self.redo_btn.clicked.connect(self.reset)
 
-        # QTimer - Cập nhật frame mỗi 30ms
+        # QTimer - Update frame every 30ms
         self.timer = QTimer()
         self.timer.timeout.connect(self.run_camera)
 
@@ -292,10 +289,10 @@ class CollectModule(Interface):
         self.off_btn.clicked.connect(self.timer.stop)
         self.off_btn.clicked.connect(self.stop_camera)
 
-        # Số frame đã xử lý
+        # Number of processed frames
         self.frame_count = 0
         
-    # Ghi nhãn vào bộ nhãn
+    # Save labels
     def confirm_label(self):
         label = self.label_input.text().strip()
         self.labels[str(self.label_idx)] = label
@@ -303,8 +300,8 @@ class CollectModule(Interface):
 
         self.label_input.setText("")
 
-    # Tạo file để ghi bộ nhãn.
-    def save_label_file1(self):
+    # Create file
+    def create_label_file(self):
         self.label_file_name = self.label_name_input.text().strip()
         if not self.label_file_name:
             pass
@@ -318,14 +315,14 @@ class CollectModule(Interface):
         self.stack.setCurrentWidget(self.page_labeling)
 
 
-    # Lưu bộ nhãn và0 file ghi bộ nhãn.
-    def save_label_file2(self):
+    # Save label file after labeling
+    def save_label_file(self):
         with open(self.label_dir, "w") as f:
             json.dump(self.labels, f, indent=2)
 
         self.stack.setCurrentWidget(self.page_num_sample)
 
-    # xác nhận số lượng mẫu
+    # Confirm number of samples
     def confirm_num_sample(self):
         # Set number of samples
         self.num_sample = self.num_sample_select.value()
@@ -335,7 +332,7 @@ class CollectModule(Interface):
         self.camera_init()
         self.mp_init()
 
-    # khởi tạo đối tượng đọc camera
+    # Initialize camera frame reader object
     def camera_init(self, frame_size: tuple = CFG.default_frame_size):
         self.cap = cv2.VideoCapture(0)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_size[0])
@@ -346,11 +343,7 @@ class CollectModule(Interface):
 
         self.timer.start(30)
 
-    """
-    Vòng lặp camera. Tạo đường dẫn lưu
-    dữ liệu. thu thập dữ và xử lý dữ liệu
-    từ camera. Lưu file dữ liệu đã xử lý.
-    """
+    # Camera loop
     def run_camera(self):
         data_save_dir = Path(self.root_dir) / CFG.data_dir
         data_save_dir.mkdir(parents=True, exist_ok=True)
@@ -381,18 +374,15 @@ class CollectModule(Interface):
         else:
             self.start_btn.setDisabled(True)
 
-        # Cập nhật quá trình thu thập dữ liệu
+        # Update data collect process
         self.draw_progress_bar(total)
 
-        # Cập nhật frame mới
+        # Update new frame
         self.update_frame(frame)
 
     def enable_collect_data(self):
         self.start_collecting_data = not self.start_collecting_data
 
-    """
-    Xử lý dữ liệu, lưu dữ liệu, cập nhật tiến độ.
-    """
     def collect_data(self, data_save_dir, curr_class):
         if self.start_collecting_data:
             self.data_file_idx = self.count_seq(data_save_dir, curr_class)
@@ -430,29 +420,25 @@ class CollectModule(Interface):
             else:
                 self.data_file_idx = 0
 
-    """
-    Hiển thị tiến độ thu thập dữ liệu
-    bằng dạng progress bar.
-    """
-    # Phần trăm khung hình đã xử lý
+    # Percentage of processed frames
     def draw_frame_count_bar(self):
-        # Cập nhật giá trị trên frame_count_bar
+        # Update new value on frame_count_bar
         self.frame_count_bar.setValue(
             int(100*self.frame_count/self.timestep)
         )
 
-        # Reset frame_count về 0 sau khi đủ video
+        # Reset frame_count to 0 after finishing a video
         if self.frame_count >= self.timestep:
             self.frame_count = 0
 
-    # Phần trăm số dữ liệu đã thu
+    # Percentage of collected files
     def draw_progress_bar(self, total):
-        # Đếm số chuỗi đã thu
+        # Count totle processed files (sequences)
         self.seq_count_bar.setValue(
             int(100*total/(self.num_sample*len(self.labels)))
         )
 
-    # Đếm số lượng mẫu trong một thư mục
+    # Count number of files (sequences) in a folder
     def count_seq(self, data_save_dir, curr_class):
         label_path = Path(data_save_dir) / curr_class
 
@@ -471,7 +457,7 @@ class CollectModule(Interface):
                 return idx
         return len(self.labels)
 
-    # Khởi tạo các đối tượng của mediapipe
+    # Initialze mediapipe objects
     def mp_init(self):
         self.mp_hand = mp.solutions.hands
         self.mp_pose = mp.solutions.pose
@@ -489,7 +475,7 @@ class CollectModule(Interface):
 
         self.mp_draw = mp.solutions.drawing_utils
 
-    # Cập nhật khung hình
+
     def update_frame(self, frame):
         frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -508,7 +494,7 @@ class CollectModule(Interface):
 
         self.cameraLabel.setPixmap(QPixmap.fromImage(image))
 
-    # Hiện màn hình đen khi tạm dừng chương trình
+
     def stop_camera(self):
         self.timer.stop()
 
@@ -518,12 +504,12 @@ class CollectModule(Interface):
         black = np.zeros((h, w, 3), dtype=np.uint8)
         self.update_frame(black)
 
-    # Bật QTimer
+
     def start_timer(self):
-        # Tự động gọi hàm run_camera mỗi 30ms
+        # Automatically call run_camera every 30ms
         self.timer.start(30)
 
-    # Reset
+
     def reset(self):
         self.timer.stop()
         self.cap.release()

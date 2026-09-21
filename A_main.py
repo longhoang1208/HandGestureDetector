@@ -2,11 +2,10 @@
 # HAND GESTURE DETECTOR
 # =========================================================
 # File name   : A_main.py
-# Description : Module điều khiển chính
-#               của phần mềm.
+# Description : The main source code of the software
 # 
 # ---------------------------------------------------------
-# CẤU TRÚC DỰ ÁN
+# PROJECT STRUCTURE
 # ---------------------------------------------------------
 # Project/
 # │
@@ -55,7 +54,7 @@
 from a1_data_collect_module   import CollectModule
 from a2_model_training_module import TrainingModule
 from b1_module1_single_sign   import Module1
-from b2_module2_multi_signs   import Module2
+from b2_module2_multi_sign    import Module2
 
 import resources_rc
 import sys
@@ -330,7 +329,7 @@ class ModulesWindow(QWidget):
         # Buttons
         home_btn               = QPushButton("Home")
         module1_btn            = QPushButton("Single Sign")
-        module2_btn            = QPushButton("Multi Signs")
+        module2_btn            = QPushButton("Multi Sign")
         collect_module_btn     = QPushButton("Collect Data")
         train_model_module_btn = QPushButton("Train model")
 
@@ -390,26 +389,23 @@ class ModulesWindow(QWidget):
 # -------------------------------------------------------------
 # MAIN WINDOW
 # -------------------------------------------------------------
-# 
-# Giao diện chính điều khiển phần mềm, bao gồm tất cả các trang
-# -------------------------------------------------------------
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
         Path(
-            Path(CFG.users_dir) / "default_user"
+            Path(CFG.users_dir) / CFG.default_user_dir
         ).mkdir(parents=True, exist_ok=True)
 
         shutil.copytree(
             CFG.models_dir,
-            Path(CFG.users_dir) / "default_user" / CFG.models_dir,
+            Path(CFG.users_dir) / CFG.default_user_dir / CFG.models_dir,
             dirs_exist_ok=True
         )
 
         shutil.copytree(
             CFG.labels_dir,
-            Path(CFG.users_dir) / "default_user" / CFG.labels_dir,
+            Path(CFG.users_dir) / CFG.default_user_dir / CFG.labels_dir,
             dirs_exist_ok=True
         )
 

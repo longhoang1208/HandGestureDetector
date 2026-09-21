@@ -11,7 +11,6 @@ from _detector import ModuleSetUp
 from _detector import Detector
 from _landmark import draw_landmarks
 from _config  import config
-from _config  import color
 
 import cv2
 import time
@@ -24,9 +23,7 @@ from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QHBoxLayout
 
-
 CFG = config()
-COL = color()
 
 
 class SequenceModule:
@@ -44,19 +41,19 @@ class SequenceModule:
         spell_word = ""
 
         for token in self.gloss_list:
-            # nếu là 1 chữ cái
+            # If token is a SINGLE LETTER
             if token.startswith("'") and token.endswith("'"):
                 spell_word += token.replace("'", "")
 
             else:
-                # nếu đang spelling thì push vào
+                # Push in if spelling word
                 if spell_word:
                     merged.append(spell_word)
                     spell_word = ""
 
                 merged.append(token)
 
-        # append cuối
+        # Append LAST spelled word
         if spell_word:
             merged.append(spell_word)
 
