@@ -12,10 +12,14 @@
 !old_ver/**
 
 !.gitignore
-!_config.py
+
+!_configurations.py
 !_detector.py
-!_landmark.py
+!_draw_ui_module.py
+!_landmark_module.py
+!_select_model_n_labels.py
 !_tts_module.py
+!_write_text_vi.py
 
 !A_main.py
 
