@@ -38,7 +38,7 @@ How it works:
 
 def resource_path(relative_path):
     if hasattr(sys, "_MEIPASS"):
-        # Tìm trong thư mục giải nén của pyinstaller
+        # Look in the PyInstaller extraction directory
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
@@ -48,12 +48,12 @@ voice = PiperVoice.load(model_path)
 """
 ------------------------------------------
 Function name : speak
-Description   : Read texts aloud
+Description   : Reads text aloud
 ------------------------------------------
 """
 def speak(text):
     """
-    Split the text into smaller syllable chunks,
+    Split the text into smaller chunks,
     then convert them into bytes. Finally,
     play the audio through the speaker using sounddevice.
     """
@@ -78,20 +78,17 @@ def speak(text):
 """
 -----------------------------------------------
 Function name : get_constraints
-Description   : Xét điều kiện để gọi hàm speak.
+Description   : Checks the conditions before
+                calling speak.
 -----------------------------------------------
 """
 def get_constraints(detector):
     """
-    Xét điều kiện, kiểm tra có yêu cầu
-    ngưỡng thời gian (set_time) không:
-    - Trong single_sign_module, detector
-      không yêu cầu ngưỡng thời gian chờ.
-    - Trong multi_sign_module, detector
-      (trong module này là Collector)
-      yêu cầu thời gian chờ để người dùng
-      ghép từ, sau khi hết thời gian chờ
-      mới đọc cả câu.
+    Check whether the required conditions are met:
+    - In single_sign_module, the detector does not require a waiting time threshold.
+    - In multi_sign_module, the detector (in this module, the Collector)
+      requires a waiting period so the user can combine words.
+      After the timeout, the whole sentence is read aloud.
     """
     const1 = detector.speak != detector.last_spoke
     const2 = detector.speak.strip()
@@ -100,16 +97,17 @@ def get_constraints(detector):
     return const1 and const2
 
 
-# -----------------------------------------------------
-# Function name : call_speak
-# Description   : Vòng lặp gọi hàm speak.
-# -----------------------------------------------------
+"""
+-----------------------------------------------------
+Function name : call_speak
+Description   : Loop that calls the speak function.
+-----------------------------------------------------
+"""
 def call_speak(detector: object, aud_btn):
     """
-    Luồng chạy liên tục, bất cứ khi nào
-    thỏa mãn các điều kiện ràng buộc và
-    chế độ đọc thành tiếng được bật lên
-    (aud_btn.isChecked) thì phát âm thanh.
+    This runs continuously. Whenever the conditions are met
+    and the text-to-speech mode is enabled
+    (`aud_btn.isChecked()`), audio is played.
     """
     while not stop_thread.is_set():
         try:
@@ -131,10 +129,12 @@ def call_speak(detector: object, aud_btn):
         time.sleep(0.05)
 
 
-# ---------------------------------------------------------------
-# Function name : speaker_init
-# Description   : Khởi tạo luồng đọc văn bản thành tiếng.
-# ---------------------------------------------------------------
+"""
+---------------------------------------------------------------
+Function name : speaker_init
+Description   : Initializes the text-to-speech thread.
+---------------------------------------------------------------
+"""
 def speaker_init(detector: object, aud_btn) -> threading.Thread:
     speaker_thread = None
     stop_thread.clear()
@@ -152,11 +152,13 @@ def speaker_init(detector: object, aud_btn) -> threading.Thread:
     return speaker_thread
 
 
-# -------------------------------------------------------
-# Function name : delete_speaker
-# Description   : Dừng luồng đọc văn bản
-#                 và xóa khỏi bộ nhớ đệm.
-# -------------------------------------------------------
+"""
+-------------------------------------------------------
+Function name : delete_speaker
+Description   : Stops the text-to-speech thread
+                and clears it from memory.
+-------------------------------------------------------
+"""
 def delete_speaker(speaker_thread: threading.Thread):
     stop_thread.set()
     speaker_thread.join()
