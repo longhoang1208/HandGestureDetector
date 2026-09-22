@@ -1,11 +1,13 @@
-# ==================================================
-# LANDMARK PROCESSOR
-# ==================================================
-# File name   : _landmark_module.py
-# Description : Trích xuất tọa độ các điểm đặc trưng
-#               (landmark) và chuẩn hóa tọa độ các
-#               landmark về khoảng [-1; 1].
-# --------------------------------------------------
+"""
+==================================================
+LANDMARK PROCESSOR
+==================================================
+File name   : _landmark_module.py
+Description : Extracts the coordinates of key
+              landmarks and normalizes them
+              to the range [-1, 1].
+--------------------------------------------------
+"""
 
 
 import numpy as np

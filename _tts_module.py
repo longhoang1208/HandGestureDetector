@@ -1,11 +1,13 @@
-# ==================================================
-# TEXT TO SPEECH PROCESSOR
-# ==================================================
-# File name   : _tts_module.py
-# Description : Khởi tạo luồng đọc văn bản
-#               thành tiếng chạy song song với
-#               luồng chính cảu phần mềm.
-# --------------------------------------------------
+"""
+==================================================
+TEXT TO SPEECH PROCESSOR
+==================================================
+File name   : _tts_module.py
+Description : Initializes the text-to-speech
+              process so it runs in parallel
+              with the main application flow.
+--------------------------------------------------
+"""
 
 
 from piper.voice import PiperVoice

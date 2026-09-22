@@ -1,14 +1,16 @@
-# ==================================================
-# DETECTOR MODULE
-# ==================================================
-# File name   : _detector.py
-# Description : Camera data processing module for
-#               hand gesture recognition using a
-#               BiLSTM model. It also initializes
-#               a base shared interface for two
-#               future gesture recognition modules:
-#               single_sign and multi_sign.
-# --------------------------------------------------
+"""
+==================================================
+DETECTOR MODULE
+==================================================
+File name   : _detector.py
+Description : Camera data processing module for
+              hand gesture recognition using a
+              BiLSTM model. It also initializes
+              a base shared interface for two
+              future gesture recognition modules:
+              single_sign and multi_sign.
+--------------------------------------------------
+"""
 
 
 import cv2

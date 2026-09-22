@@ -1,10 +1,12 @@
-# ==================================================
-# CONFIGURATIONS
-# ==================================================
-# File name   : _configurations.py
-# Description : Initialize the common variables
-#               among modules.
-# --------------------------------------------------
+"""
+==================================================
+CONFIGURATIONS
+==================================================
+File name   : _configurations.py
+Description : Initialize the common variables
+              among modules.
+--------------------------------------------------
+"""
 
 
 class config:
