@@ -1,54 +1,56 @@
-# =========================================================
-# HAND GESTURE DETECTOR
-# =========================================================
-# File name   : A_main.py
-# Description : The main source code of the software
-# 
-# ---------------------------------------------------------
-# PROJECT STRUCTURE
-# ---------------------------------------------------------
-# Project/
-# │
-# ├── data/
-# │   │
-# │   ├── processed/        <- dữ liệu để huấn luyện
-# │   │   ├── Xin chào/     <- tên nhãn
-# │   │   │   ├── 0.npy     <- video mẫu
-# │   │   │   ├── 1.npy
-# │   │   │   └── ...
-# │   │   └── ...
-# │   │
-# │   └── training_plot/    <- biểu đồ
-# │       ├── training_plot.png     <- accuracy, loss
-# │       └── confusion_matrix.png  <- ma trận nhầm lẫn
-# │
-# ├── labels/
-# │   │
-# │   ├── asl_labels.json
-# │   └── ...
-# │
-# ├── models/
-# │   │
-# │   ├── asl_model.keras
-# │   └── ...
-# │
-# ├── voices/
-# │   │
-# │   ├── en_US-lessac-medium.onnx
-# │   └── en_US-lessac-medium.onnx.json
-# │
-# ├── _configurations.py
-# ├── _detector.py
-# ├── _landmarks_module.py
-# ├── _tts_module.py
-# │
-# ├── A_main.py
-# │
-# ├── a1_data_collect_module.py
-# ├── a2_model_training_module.py
-# ├── b1_module1_single_sign.py
-# └── b2_module2_multi_signs.py
-# ---------------------------------------------------------
+"""
+=========================================================
+HAND GESTURE DETECTOR
+=========================================================
+File name   : A_main.py
+Description : The main source code of the software
+
+---------------------------------------------------------
+PROJECT STRUCTURE
+---------------------------------------------------------
+Project/
+│
+├── data/
+│   │
+│   ├── processed/        <- dữ liệu để huấn luyện
+│   │   ├── Xin chào/     <- tên nhãn
+│   │   │   ├── 0.npy     <- video mẫu
+│   │   │   ├── 1.npy
+│   │   │   └── ...
+│   │   └── ...
+│   │
+│   └── training_plot/    <- biểu đồ
+│       ├── training_plot.png     <- accuracy, loss
+│       └── confusion_matrix.png  <- ma trận nhầm lẫn
+│
+├── labels/
+│   │
+│   ├── asl_labels.json
+│   └── ...
+│
+├── models/
+│   │
+│   ├── asl_model.keras
+│   └── ...
+│
+├── voices/
+│   │
+│   ├── en_US-lessac-medium.onnx
+│   └── en_US-lessac-medium.onnx.json
+│
+├── _configurations.py
+├── _detector.py
+├── _landmarks_module.py
+├── _tts_module.py
+│
+├── A_main.py
+│
+├── a1_data_collect_module.py
+├── a2_model_training_module.py
+├── b1_module1_single_sign.py
+└── b2_module2_multi_signs.py
+---------------------------------------------------------
+"""
 
 
 from a1_data_collect_module   import CollectModule
