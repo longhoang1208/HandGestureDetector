@@ -123,10 +123,6 @@ def split_train_test(samples, label_map):
     return x_train, y_train, x_test, y_test, label_map
 
 
-def train_model(labels_path, model_name, epochs, patience):
-    x_train, y_train, x_test, y_test, label_map = get_samples(labels_path)
-    (timestep, n_features) = (x_train.shape[1], x_train.shape[2])
-
 def build_model(timestep, n_features, label_map):
     # Sắp xếp layers
     model = Sequential()

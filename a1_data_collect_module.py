@@ -28,7 +28,6 @@ from _landmark import extract_landmarks
 from _landmark import draw_landmarks
 from _landmark import lm_shape
 from _config   import config
-from _config   import color
 
 import cv2
 import mediapipe as mp
@@ -53,8 +52,6 @@ from PySide6.QtWidgets import QLineEdit
 from PySide6.QtWidgets import QSpinBox
 from PySide6.QtWidgets import QStackedWidget
 
-
-COL    = color()
 CFG    = config()
 Dt_CFG = DetectorConfigurations()
 

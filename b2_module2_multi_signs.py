@@ -11,7 +11,6 @@ from _detector import ModuleSetUp
 from _detector import Detector
 from _landmark import draw_landmarks
 from _config  import config
-from _config  import color
 
 import cv2
 import time
@@ -24,9 +23,7 @@ from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QHBoxLayout
 
-
 CFG = config()
-COL = color()
 
 
 class SequenceModule:
