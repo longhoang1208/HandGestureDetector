@@ -12,16 +12,16 @@ Project/
 │
 ├── data/
 │   │
-│   ├── processed/        <- dữ liệu để huấn luyện
-│   │   ├── Xin chào/     <- tên nhãn
-│   │   │   ├── 0.npy     <- video mẫu
+│   ├── processed/        <- dataset directory
+│   │   ├── Xin chào/     <- class name
+│   │   │   ├── 0.npy     <- processed data
 │   │   │   ├── 1.npy
 │   │   │   └── ...
 │   │   └── ...
 │   │
-│   └── training_plot/    <- biểu đồ
+│   └── training_plot/    <- training plots directory
 │       ├── training_plot.png     <- accuracy, loss
-│       └── confusion_matrix.png  <- ma trận nhầm lẫn
+│       └── confusion_matrix.png  <- confusion matrix
 │
 ├── labels/
 │   │

@@ -83,9 +83,9 @@ def extract_landmarks(hand_results, pose_results):
 
 def draw_landmarks(frame, hand_results, pose_results):
     """
-    Vẽ khung xương:
-    - Điểm khớp (landmarks)
-    - Đường nối (HAND_CONNECTIONS, POSE_CONNECTIONS)
+    Draw landmarks:
+    - Keypoints (landmarks)
+    - Connect lines (HAND_CONNECTIONS, POSE_CONNECTIONS)
     """
     mp_hands   = mp.solutions.hands
     mp_pose    = mp.solutions.pose

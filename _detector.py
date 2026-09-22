@@ -42,15 +42,17 @@ from _landmark   import extract_landmarks
 from _config     import config
 from _tts_module import delete_speaker
 
-# -----------------------------------
-# CONFIGURATIONS
-# -----------------------------------
-# 
-# max_num_hand             : 2 hands
-# min_detection_confidence : 70%
-# min_tracking_confidence  : 50%
-# label_duration           : 0.1s
-# -----------------------------------
+"""
+-----------------------------------
+CONFIGURATIONS
+-----------------------------------
+
+max_num_hand             : 2 hands
+min_detection_confidence : 70%
+min_tracking_confidence  : 50%
+label_duration           : 0.1s
+-----------------------------------
+"""
 
 class DetectorConfigurations:
     def __init__(self):
