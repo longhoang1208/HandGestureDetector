@@ -1,10 +1,12 @@
-# ==================================================
-# SINGLE SIGN MODULE
-# ==================================================
-# File name   : b1_module1_single_sign.py
-# Description : Module nhận diện từng cử chỉ
-#               riêng lẻ.
-# --------------------------------------------------
+"""
+==================================================
+SINGLE SIGN MODULE
+==================================================
+File name   : b1_module1_single_sign.py
+Description : Module nhận diện từng cử chỉ
+              riêng lẻ.
+--------------------------------------------------
+"""
 
 
 from _tts_module import speaker_init
@@ -103,16 +105,23 @@ class Module1(ModuleSetUp):
         self.update_frame(frame)
 
 
-# def main():
-#     app = QApplication()
+"""
+-----------------------------------------------
+Module testing function
+-----------------------------------------------
+
+def main():
+    from PySide6.QtWidgets import QApplication
+    app = QApplication()
     
-#     window = Module1()
-#     window.show()
+    window = Module1()
+    window.show()
 
-#     app.exec()
+    app.exec()
 
-#     if hasattr(window, "speaker_thread"):
-#         delete_speaker(window.speaker_thread)
+    if hasattr(window, "speaker_thread"):
+        delete_speaker(window.speaker_thread)
 
-# if __name__=="__main__":
-#     main()
+if __name__=="__main__":
+    main()
+"""

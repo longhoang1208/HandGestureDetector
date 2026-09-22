@@ -1,9 +1,11 @@
-# ==================================================
-# SINGLE SIGN MODULE
-# ==================================================
-# File name   : b2_module2_multi_signs.py
-# Description : Module nhận diện chuỗi cử chỉ.
-# --------------------------------------------------
+"""
+==================================================
+SINGLE SIGN MODULE
+==================================================
+File name   : b2_module2_multi_signs.py
+Description : Module nhận diện chuỗi cử chỉ.
+--------------------------------------------------
+"""
 
 
 from _tts_module import speaker_init
@@ -184,3 +186,22 @@ class Module2(ModuleSetUp):
         self.FPS.setText(f"FPS: {fps:.1f}")
 
         self.update_frame(frame)
+
+
+"""
+-----------------------------------------------
+Module testing function
+-----------------------------------------------
+
+def main():
+    from PySide6.QtWidgets import QApplication
+    app = QApplication()
+    
+    window = Module2()
+    window.show()
+
+    app.exec()
+
+if __name__=="__main__":
+    main()
+"""

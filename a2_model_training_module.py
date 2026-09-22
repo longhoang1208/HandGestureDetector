@@ -1,10 +1,12 @@
-# ==================================================
-# MODEL TRAINING MODULE
-# ==================================================
-# File name   : a2_model_training_module.py
-# Description : Train BiLSTM model from the
-#               collected dataset.
-# --------------------------------------------------
+"""
+==================================================
+MODEL TRAINING MODULE
+==================================================
+File name   : a2_model_training_module.py
+Description : Train BiLSTM model from the
+              collected dataset.
+--------------------------------------------------
+"""
 
 
 import numpy as np
@@ -59,12 +61,14 @@ from PySide6.QtWidgets import QTableWidgetItem
 from PySide6.QtWidgets import QLineEdit
 
 
-# ---------------------------------------------------------
-# CONFIGURATIONS
-# ---------------------------------------------------------
-# Description : Initialize paths and parameters for the
-#               training process.
-# ---------------------------------------------------------
+"""
+---------------------------------------------------------
+CONFIGURATIONS
+---------------------------------------------------------
+Description : Initialize paths and parameters for the
+              training process.
+---------------------------------------------------------
+"""
 
 class config(cf):
     def __init__(self):
@@ -376,9 +380,11 @@ class TrainingModule(QWidget):
         self.stack = QStackedWidget()
         self.mainLayout.addWidget(self.stack)
 
-        # ---------------------------------------
-        # PAGE 1 - SELECT LABELS & NAME MODEL
-        # ---------------------------------------
+        """
+        ---------------------------------------
+        PAGE 1 - SELECT LABELS & NAME MODEL
+        ---------------------------------------
+        """
         self.MnL_page = QWidget()
         self.MnL_page_layout = QVBoxLayout(self.MnL_page)
 
@@ -410,9 +416,11 @@ class TrainingModule(QWidget):
         self.MnL_page_layout.addWidget(self.confirm_btn)
         self.MnL_page_layout.addStretch()
 
-        # ---------------------------------------
-        # PAGE 2 - START TRAINING
-        # ---------------------------------------
+        """
+        ---------------------------------------
+        PAGE 2 - START TRAINING
+        ---------------------------------------
+        """
         # Create page
         self.training_page = QWidget()
         self.training_page_layout = QVBoxLayout(self.training_page)
@@ -445,9 +453,11 @@ class TrainingModule(QWidget):
         self.training_page_layout.addWidget(self.go_back_btn)
         self.training_page_layout.addStretch()
 
-        # ---------------------------------------
-        # PAGE 3 - TRAINING RESULT
-        # ---------------------------------------
+        """
+        ---------------------------------------
+        PAGE 3 - TRAINING RESULT
+        ---------------------------------------
+        """
         self.result_page = QWidget()
         self.result_page_layout = QVBoxLayout(self.result_page)
 
@@ -481,9 +491,11 @@ class TrainingModule(QWidget):
         self.result_page_layout.addWidget(self.redo_btn)
         self.result_page_layout.addStretch()
 
-        # ---------------------------------------
-        # ARRANGE PAGES ORDER
-        # ---------------------------------------
+        """
+        ---------------------------------------
+        ARRANGE PAGES ORDER
+        ---------------------------------------
+        """
         self.stack.addWidget(self.MnL_page)
         self.stack.addWidget(self.training_page)
         self.stack.addWidget(self.result_page)
@@ -569,16 +581,22 @@ class TrainingModule(QWidget):
         self.stack.setCurrentWidget(self.MnL_page)
 
 
-# def main():
-#     from PySide6.QtWidgets import QApplication
+"""
+--------------------------------------------------------
+Module testing function
+--------------------------------------------------------
 
-#     device = tf.config.list_physical_devices('GPU')
-#     print(f"GPU available: {device}" if device else "GPU not found. Using CPU")
+def main():
+    from PySide6.QtWidgets import QApplication
 
-#     app = QApplication()
-#     window = TrainingModule()
-#     window.show()
-#     app.exec()
+    device = tf.config.list_physical_devices('GPU')
+    print(f"GPU available: {device}" if device else "GPU not found. Using CPU")
+
+    app = QApplication()
+    window = TrainingModule()
+    window.show()
+    app.exec()
     
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
+"""

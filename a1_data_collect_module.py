@@ -1,25 +1,27 @@
-# ==================================================
-# DATA COLLECT MODULE
-# ==================================================
-# File name   : a1_data_collect_module.py
-# Description : Training dataset collecting module.
-# 
-# --------------------------------------------------
-# DATA SAVING STRUCTURE
-# --------------------------------------------------
-# data/
-# │
-# ├── processed/        <- Collected dataset
-# │   ├── Xin chào/     <- Label name
-# │   │   ├── 0.npy     <- processed data
-# │   │   ├── 1.npy
-# │   │   └── ...
-# │   └── ...
-# │
-# └── training_plot/    <- biểu đồ
-#     ├── training_plot.png     <- accuracy, loss
-#     └── confusion_matrix.png  <- Confusion matrix
-# --------------------------------------------------
+"""
+==================================================
+DATA COLLECT MODULE
+==================================================
+File name   : a1_data_collect_module.py
+Description : Training dataset collecting module.
+
+--------------------------------------------------
+DATA SAVING STRUCTURE
+--------------------------------------------------
+data/
+│
+├── processed/        <- Collected dataset
+│   ├── Xin chào/     <- Label name
+│   │   ├── 0.npy     <- processed data
+│   │   ├── 1.npy
+│   │   └── ...
+│   └── ...
+│
+└── training_plot/    <- Training plots directory
+    ├── training_plot.png     <- accuracy, loss
+    └── confusion_matrix.png  <- Confusion matrix
+--------------------------------------------------
+"""
 
 
 from _detector import DetectorConfigurations
@@ -68,9 +70,11 @@ class Interface(QWidget):
         self.stack = QStackedWidget()
         self.mainLayout.addWidget(self.stack)
 
-        # ---------------------------------------
-        # PAGE 1 - CREATE LABEL FILE
-        # ---------------------------------------
+        """
+        ---------------------------------------
+        PAGE 1 - CREATE LABEL FILE
+        ---------------------------------------
+        """
         # Create page
         self.page_create_file = QWidget()
         self.page_create_file_layout = QVBoxLayout(self.page_create_file)
@@ -94,9 +98,11 @@ class Interface(QWidget):
         self.page_create_file_layout.addStretch()
 
 
-        # ---------------------------------------
-        # PAGE 2 - LABELING
-        # ---------------------------------------
+        """
+        ---------------------------------------
+        PAGE 2 - LABELING
+        ---------------------------------------
+        """
         # Create page
         self.page_labeling = QWidget()
         self.page_labeling_layout = QVBoxLayout(self.page_labeling)
@@ -125,9 +131,11 @@ class Interface(QWidget):
         self.page_labeling_layout.addStretch()
 
 
-        # ---------------------------------------
-        # PAGE 3 - SELECT NUMBER OF SAMPLES
-        # ---------------------------------------
+        """
+        ---------------------------------------
+        PAGE 3 - SELECT NUMBER OF SAMPLES
+        ---------------------------------------
+        """
         # Create page
         self.page_num_sample = QWidget()
         self.page_num_sample_layout = QVBoxLayout(self.page_num_sample)
@@ -151,9 +159,11 @@ class Interface(QWidget):
         self.page_num_sample_layout.addStretch()
 
 
-        # ---------------------------------------
-        # PAGE 4 - RECORD
-        # ---------------------------------------
+        """
+        ---------------------------------------
+        PAGE 4 - RECORD
+        ---------------------------------------
+        """
         # Create page
         self.page_collect = QWidget()
         self.page_collect_layout = QHBoxLayout(self.page_collect)
@@ -229,25 +239,29 @@ class Interface(QWidget):
 
         self.right_layout.addLayout(button_layout)
 
-        # --------------------------------------------------
-        # ARRANGE PAGES ORDER
-        # --------------------------------------------------
+        """
+        --------------------------------------------------
+        ARRANGE PAGES ORDER
+        --------------------------------------------------
+        """
         self.stack.addWidget(self.page_create_file)
         self.stack.addWidget(self.page_labeling)
         self.stack.addWidget(self.page_num_sample)
         self.stack.addWidget(self.page_collect)
 
 
-# ----------------------------------------------------------
-# DATA COLLECTOR
-# ----------------------------------------------------------
-# 
-# Description:
-#   - Create file
-#   - Labeling
-#   - Save file
-#   - Save processed data
-# ----------------------------------------------------------
+"""
+----------------------------------------------------------
+DATA COLLECTOR
+----------------------------------------------------------
+
+Description:
+  - Create file
+  - Labeling
+  - Save file
+  - Save processed data
+----------------------------------------------------------
+"""
 class CollectModule(Interface):
     def __init__(self, user_name):
         super().__init__()
@@ -533,17 +547,20 @@ class CollectModule(Interface):
         self.stack.setCurrentWidget(self.page_create_file)
 
 
-# def main():
-#     from PySide6.QtWidgets import QApplication
-#     app = QApplication()
+"""
+-------------------------------------------------
+Module testing function
+-------------------------------------------------
 
-#     window = CollectModule()
-#     window.show()
+def main():
+    from PySide6.QtWidgets import QApplication
+    app = QApplication()
 
-#     app.exec()
+    window = CollectModule()
+    window.show()
 
-#     if hasattr(window, "cap"):
-#         window.cap.release()
+    app.exec()
 
-# if __name__=="__main__":
-#     main()
+if __name__=="__main__":
+    main()
+"""
