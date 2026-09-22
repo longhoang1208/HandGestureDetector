@@ -19,23 +19,23 @@ import sys
 import os
 
 
-# Khóa dừng luồng
+# Thread lock
 stop_thread = threading.Event()
 
-# load model giọng đọc tiếng Anh
+# Load English voice model
 """
-Nguyên lý hoạt động:
-    Khi compile bằng lệnh
+How it works:
+    When building the app with:
     `pyinstaller main.py --onedir --add-data "voices;voices"`,
-    khi chạy phần mềm thì file main.exe sẽ giải nén
-    các thư mục được thêm vào từ `--add-data` vào một
-    thư mục các file tạm.
-    
-    Hàm resource_path là để tìm đường dẫn tới model voice
-    trong thư mục tạm đó, thay vì dùng đường dẫn tương đối
-    cần phải copy trực tiếp thư mục voices vào cùng với
-    main.exe.
+    the generated `main.exe` will extract the added folders
+    from `--add-data` into a temporary directory.
+
+    The `resource_path` function is used to locate the voice model
+    inside that temporary folder instead of relying on a relative path.
+    In other words, the `voices` folder must be copied alongside
+    the `main.exe` file.
 """
+
 def resource_path(relative_path):
     if hasattr(sys, "_MEIPASS"):
         # Tìm trong thư mục giải nén của pyinstaller
@@ -45,15 +45,17 @@ def resource_path(relative_path):
 model_path = resource_path("voices/en_US-lessac-medium.onnx")
 voice = PiperVoice.load(model_path)
 
-# ------------------------------------------
-# Funciton name : speak
-# Description   : Đọc văn bản thành tiếng.
-# ------------------------------------------
+"""
+------------------------------------------
+Function name : speak
+Description   : Read texts aloud
+------------------------------------------
+"""
 def speak(text):
     """
-    Chia nhỏ các âm tiết trong văn bản,
-    sau đó chyển thành các bytes. Cuối cùng
-    phát ra loa bằng sounddevice.
+    Split the text into smaller syllable chunks,
+    then convert them into bytes. Finally,
+    play the audio through the speaker using sounddevice.
     """
     audio = bytearray()
 
@@ -73,10 +75,12 @@ def speak(text):
     sd.wait()
 
 
-# -----------------------------------------------
-# Function name : get_constraints
-# Description   : Xét điều kiện để gọi hàm speak.
-# -----------------------------------------------
+"""
+-----------------------------------------------
+Function name : get_constraints
+Description   : Xét điều kiện để gọi hàm speak.
+-----------------------------------------------
+"""
 def get_constraints(detector):
     """
     Xét điều kiện, kiểm tra có yêu cầu
@@ -97,7 +101,7 @@ def get_constraints(detector):
 
 
 # -----------------------------------------------------
-# Funciton name : call_speak
+# Function name : call_speak
 # Description   : Vòng lặp gọi hàm speak.
 # -----------------------------------------------------
 def call_speak(detector: object, aud_btn):

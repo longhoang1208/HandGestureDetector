@@ -64,14 +64,16 @@ Dt_CFG = DetectorConfigurations()
 CFG = config()
 
 
-# --------------------------------------------
-# DETECTOR
-# --------------------------------------------
-# 
-# - Extract landmarks.
-# - Normalize data.
-# - Detect gestures.
-# --------------------------------------------
+"""
+--------------------------------------------
+DETECTOR
+--------------------------------------------
+
+- Extract landmarks.
+- Normalize data.
+- Detect gestures.
+--------------------------------------------
+"""
 
 class Detector:
     def __init__(self, model, labels):
@@ -97,7 +99,7 @@ class Detector:
 
     def _camera_init(self, frame_size: tuple):
         """
-        frame_size có dạng (frame_width, frame_height)
+        frame_size shape; (frame_width, frame_height)
         """
         self.cap = cv2.VideoCapture(0)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_size[0])
@@ -194,9 +196,11 @@ class Detector:
         self.pose_results = None
 
 
-# --------------------------------------------
-# GENERAL UI SETUP
-# --------------------------------------------
+"""
+--------------------------------------------
+GENERAL UI SETUP
+--------------------------------------------
+"""
 class Interface(QWidget):
     def __init__(self):
         super().__init__()

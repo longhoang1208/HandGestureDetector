@@ -14,9 +14,11 @@ import numpy as np
 import mediapipe as mp
 
 
-# --------------------------
-# DATA SHAPES
-# --------------------------
+"""
+--------------------------
+DATA SHAPES
+--------------------------
+"""
 
 # MediaPipe Hand Landmarks
 single_hand_shape = 3 * 21
