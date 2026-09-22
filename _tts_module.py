@@ -17,10 +17,6 @@ import sys
 import os
 
 
-GREEN  = (76, 153, 0)
-RED    = (50, 50, 220)
-
-
 # Khóa dừng luồng
 stop_thread = threading.Event()
 
