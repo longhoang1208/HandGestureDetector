@@ -10,9 +10,6 @@
 
 import numpy as np
 import mediapipe as mp
-from _config import color
-
-COL = color()
 
 
 # --------------------------
@@ -97,7 +94,7 @@ def draw_landmarks(frame, hand_results, pose_results):
                 hand_landmarks,
                 mp_hands.HAND_CONNECTIONS,
                 mp_drawing.DrawingSpec(
-                    color=COL.CYAN,
+                    color=(20, 171, 226),
                     thickness=-1,
                     circle_radius=8
                 ),
@@ -113,7 +110,7 @@ def draw_landmarks(frame, hand_results, pose_results):
             pose_results.pose_landmarks,
             mp_pose.POSE_CONNECTIONS,
             mp_drawing.DrawingSpec(
-                color=COL.CYAN,
+                color=(20, 171, 226),
                 thickness=-1,
                 circle_radius=8
             ),
