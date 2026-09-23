@@ -11,12 +11,12 @@
 ---
 
 ## Tổng quan sản phẩm
+Đây là mã nguồn cho một phần mềm nhận diện cử chỉ tay thông qua webcam máy tính, bằng cách sử dụng một mô hình BiLSTM để nhận diện cử chỉ và trả về các câu/từ trong bộ nhãn (labels).
+
 Người dùng có thể tự thu thập dữ liệu và huấn luyện mô hình
 để nhận diện các ký hiệu riêng tùy theo nhu cầu sử dụng.
 
-Trích xuất camera trên thiết bị, nhận diện các cử chỉ tay để dự đoán câu lệnh tương ứng. Phần mềm sử dụng một mô hình học sâu (do người phát triển sản phẩm huấn luyện) để nhận diện các ký hiệu tay.
-
-Hiện tại, sản phẩm đã có 2 chế độ là nhận diện ký hiệu đơn lẻ và nhận diện chuỗi ký hiệu (ghép các từ thành câu).
+Hiện tại, sản phẩm có 2 chế độ là nhận diện ký hiệu đơn lẻ và nhận diện chuỗi ký hiệu (ghép các từ thành câu).
 
 Output khi nhận diện ký hiệu bao gồm chữ hiển thị trên màn hình giao diện phần mềm và âm thanh phát ra loa.
 
@@ -114,7 +114,7 @@ d:/Project/
 ├── a1_data_collect_module.py    <- Thu thập dữ liệu
 ├── a2_model_training_module.py  <- Huấn luyện mô hình
 ├── b1_module1_single_sign.py    <- Nhận diện ký hiệu lẻ
-├── a2_module2_multi_signs.py    <- Nhận diện chuỗi ký hiệu
+├── a2_module2_multi_sign.py     <- Nhận diện chuỗi ký hiệu
 │
 ├── A_main.py
 │
