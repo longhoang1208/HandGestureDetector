@@ -114,7 +114,7 @@ d:/Project/
 ├── a1_data_collect_module.py    <- Thu thập dữ liệu
 ├── a2_model_training_module.py  <- Huấn luyện mô hình
 ├── b1_module1_single_sign.py    <- Nhận diện ký hiệu lẻ
-├── a2_module2_multi_signs.py    <- Nhận diện chuỗi ký hiệu
+├── a2_module2_multi_sign.py     <- Nhận diện chuỗi ký hiệu
 │
 ├── A_main.py
 │
