@@ -141,7 +141,7 @@ d:/Project/
 
 - Tải model và giọng đọc: https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/lessac/medium
 
-- Lưu **en_US-lessac-medium.onnx** và **en_US-lessac-medium.onnx.json** trong thư mục voices.
+- Lưu `en_US-lessac-medium.onnx` và `en_US-lessac-medium.onnx.json` trong thư mục voices.
 
 ---
 
