@@ -524,10 +524,6 @@ class TrainingModule(QWidget):
 
     # Start training model
     def start_training(self):
-        if not self.selected_labels_file:
-            self.status_label.setText("⚠️ Chưa chọn bộ nhãn!")
-            return
-
         labels_path = os.path.join(
             self.labels_dir,
             self.selected_labels_file
