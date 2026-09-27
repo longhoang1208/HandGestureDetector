@@ -286,10 +286,15 @@ class CollectModule(Interface):
         self.start_collecting_data = False
 
         self.create_label_file_btn.clicked.connect(self.create_label_file)
+        self.label_name_input.returnPressed.connect(self.create_label_file)
+
         self.save_label_file_btn.clicked.connect(self.save_label_file)
 
         self.confirm_lb_btn.clicked.connect(self.confirm_label)
+        self.label_input.returnPressed.connect(self.confirm_label)
+
         self.num_samp_confirm_btn.clicked.connect(self.confirm_num_sample)
+        self.num_sample_select.returnPressed.connect(self.confirm_num_sample)
 
         self.start_btn.clicked.connect(self.enable_collect_data)
         self.redo_btn.clicked.connect(self.reset)

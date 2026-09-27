@@ -103,9 +103,12 @@ def get_samples(labels_path):
     with open(labels_path, "r") as f:
         label_map = json.load(f)
 
+    # labels_path: Users/<user_name>/labels/<file>.json
+    data_dir = Path(labels_path).parent.parent / CFG.data_dir
+
     # Lặp qua tất cả file và thêm vào samples list
     for idx, label in label_map.items():
-        folder = os.path.join(CFG.data_dir, label)
+        folder = Path(data_dir) / label
 
         for file in os.listdir(folder):
             if file.endswith(".npy"):
@@ -357,7 +360,9 @@ class TrainingWorker(QThread):
 
 
         # Save model
-        model.save(self.models_dir)
+        model.save(
+            Path(self.models_dir) / f"{self.model_name}.keras"
+        )
 
         y_pred_probs = model.predict(x_test)
         y_pred = np.argmax(y_pred_probs, axis=1)

@@ -180,6 +180,7 @@ class CreateUserPage(QWidget):
         self.create_btn = QPushButton("Create user")
         self.create_btn.setMaximumWidth(CFG.button_width)
         self.create_btn.clicked.connect(self.create_user)
+        self.input.returnPressed.connect(self.create_user)
 
         self.file_model = QFileSystemModel()
         self.file_model.setFilter(
