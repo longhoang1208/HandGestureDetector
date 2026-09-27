@@ -30,6 +30,10 @@ pose_shape = 3 * 33
 lm_shape = 2 * single_hand_shape + pose_shape
 
 
+COL_GREEN_BGR = (0, 220, 100)
+COL_BLUE_BGR = (226, 171, 20)
+
+
 def normalize_landmarks(points, origin_idx):
     pts = np.array(points, dtype=np.float32)
     pts -= pts[origin_idx].copy()
@@ -98,12 +102,12 @@ def draw_landmarks(frame, hand_results, pose_results):
                 hand_landmarks,
                 mp_hands.HAND_CONNECTIONS,
                 mp_drawing.DrawingSpec(
-                    color=(20, 171, 226),
+                    color=COL_BLUE_BGR,
                     thickness=-1,
                     circle_radius=8
                 ),
                 mp_drawing.DrawingSpec(
-                    color=(0, 220, 100),
+                    color=COL_GREEN_BGR,
                     thickness=5
                 ),
             )
@@ -114,12 +118,12 @@ def draw_landmarks(frame, hand_results, pose_results):
             pose_results.pose_landmarks,
             mp_pose.POSE_CONNECTIONS,
             mp_drawing.DrawingSpec(
-                color=(20, 171, 226),
+                color=COL_BLUE_BGR,
                 thickness=-1,
                 circle_radius=8
             ),
             mp_drawing.DrawingSpec(
-                color=(0, 220, 100),
+                color=COL_GREEN_BGR,
                 thickness=5
             ),
         )
