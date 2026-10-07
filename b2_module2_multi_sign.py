@@ -1,8 +1,8 @@
 """
 ==================================================
-SINGLE SIGN MODULE
+MULTI-SIGN MODULE
 ==================================================
-File name   : b2_module2_multi_signs.py
+File name   : b2_module2_multi_sign.py
 Description : Module nhận diện chuỗi cử chỉ.
 --------------------------------------------------
 """

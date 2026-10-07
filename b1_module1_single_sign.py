@@ -1,6 +1,6 @@
 """
 ==================================================
-SINGLE SIGN MODULE
+SINGLE-SIGN MODULE
 ==================================================
 File name   : b1_module1_single_sign.py
 Description : Module nhận diện từng cử chỉ
