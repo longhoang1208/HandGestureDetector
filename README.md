@@ -147,15 +147,6 @@ d:/Project/
 
 ## Mã nguồn
 
-### `_detector.py`
-Module nhận diện ký hiệu từ model và nhãn đã được chọn.
-
-### `_landmark_module.py`
-Module xử lý dữ liệu từ tọa độ của các điểm lanmarks và vẽ khung xương.
-
-### `_tts_module.py`
-Module đọc văn bản thành tiếng.
-
 ### Lệnh chạy chương trình
 ```bash
 python A_main.py
