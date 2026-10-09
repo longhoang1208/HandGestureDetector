@@ -405,6 +405,7 @@ class CollectModule(Interface):
     def collect_data(self, data_save_dir, curr_class):
         if self.start_collecting_data:
             self.data_file_idx = self.count_seq(data_save_dir, curr_class)
+
             if self.data_file_idx < self.num_sample:
                 # Extract features
                 if self.hand_res and self.hand_res.multi_hand_landmarks:
@@ -422,6 +423,7 @@ class CollectModule(Interface):
                     self.frame_count += 1
                     self.draw_frame_count_bar()
                     self.start_btn.setDisabled(True)
+                    
                 # Save data file
                 else:
                     data_save_path = Path(data_save_dir) / curr_class / f"{self.data_file_idx}.npy"
