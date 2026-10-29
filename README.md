@@ -73,42 +73,26 @@ Có 4 module chính:
 ```text
 d:/Project/
 │
-├── data/
-│   ├── processed/
-│   │   ├── Xin chào/
-│   │   │   ├── 0.npy
-│   │   │   ├── 1.npy
-│   │   │   ├── ...
-│   │   │   └── 19.npy
-│   │   └── ...
-│   │
-│   └── Training_plot/
-│       ├── plot.png
-│       └── confusion_matrix.png
+├── Users/
+│   └── default_user/
+│       ├── labels/
+│       │   ├── labels.json
+│       │   └── ...
+│       │
+│       └── models/
+│           ├── model.keras
+│           └── ...
 │
 ├── voices/
 │   ├── voices en_US-lessac-medium.onnx
 │   └── en_US-lessac-medium.onnx.json
 │
-├── labels/
-│   ├── labels.json
-│   └── ...
-│
-├── models/
-│   ├── model.keras
-│   └── ...
-│
-├── resources/
-│   ├── icon.ico
-│   ├── Page1.PNG
-│   └── ...
-│
 ├── resources.qrc
 ├── resources_rc.py
 │
-├── _configurations.py
+├── _config.py
 ├── _detector.py
-├── _landmark_module.py
+├── _landmark.py
 ├── _tts_module.py
 │
 ├── a1_data_collect_module.py    <- Thu thập dữ liệu
@@ -119,6 +103,24 @@ d:/Project/
 ├── A_main.py
 │
 └── requirements.txt
+```
+
+## Cấu trúc lưu dữ liệu huấn luyện mô hình
+```text
+Users/
+└── <user_name>/
+    └── data/
+        ├── processed/
+        │   ├── Xin chào/
+        │   │   ├── 0.npy
+        │   │   ├── 1.npy
+        │   │   ├── ...
+        │   │   └── 19.npy
+        │   └── ...
+        │
+        └── Training_plot/
+            ├── plot.png
+            └── confusion_matrix.png
 ```
 
 ---
