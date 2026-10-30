@@ -86,6 +86,25 @@ class config(cf):
 
 CFG = config()
 
+POSE_FLIP_PAIRS = [
+    (1, 4),
+    (2, 5),
+    (3, 6),
+    (7, 8),
+    (9, 10),
+    (11, 12),
+    (13, 14),
+    (15, 16),
+    (17, 18),
+    (19, 20),
+    (21, 22),
+    (23, 24),
+    (25, 26),
+    (27, 28),
+    (29, 30),
+    (31, 32)
+]
+
 
 def flip_aug(x: np.ndarray, y: np.ndarray):
     x_flip = x.copy()
@@ -94,7 +113,7 @@ def flip_aug(x: np.ndarray, y: np.ndarray):
         for frame in sequence:
             left_hand  = frame[single_hand_shape:len(frame) - pose_shape].copy()
             right_hand = frame[:single_hand_shape].copy()
-            body = frame[single_hand_shape * 2:].copy()
+            body = frame[single_hand_shape * 2:].copy().reshape(-1, 3)
 
             for i in range(0, len(left_hand), 3):
                 left_hand[i] = -left_hand[i]
@@ -102,12 +121,14 @@ def flip_aug(x: np.ndarray, y: np.ndarray):
             for i in range(0, len(right_hand), 3):
                 right_hand[i] = -right_hand[i]
 
-            for i in range(0, len(body), 3):
-                body[i] = -body[i]
+            body[:, 0] *= -1
+
+            for left, right in POSE_FLIP_PAIRS:
+                body[[left, right]] = body[[right, left]]
 
             frame[:single_hand_shape] = left_hand
             frame[single_hand_shape:len(frame) - pose_shape] = right_hand
-            frame[single_hand_shape * 2:] = body
+            frame[single_hand_shape * 2:] = body.reshape(-1)
 
     return x_flip, y
 
@@ -153,13 +174,9 @@ def split_train_test(samples, label_map):
     x_train, y_train = load_data(train_samples)
     x_test, y_test   = load_data(test_samples)
 
-    x_flipped, y_flipped = flip_aug(x_train, y_train)
-    x_train = np.concatenate((x_train, x_flipped), axis=0)
-    y_train = np.concatenate((y_train, y_flipped), axis=0)
-
-    x_flipped, y_flipped = flip_aug(x_test, y_test)
-    x_test = np.concatenate((x_test, x_flipped), axis=0)
-    y_test = np.concatenate((y_test, y_flipped), axis=0)
+    x_train_flipped, y_train_flipped = flip_aug(x_train, y_train)
+    x_train = np.concatenate((x_train, x_train_flipped), axis=0)
+    y_train = np.concatenate((y_train, y_train_flipped), axis=0)
 
     return x_train, y_train, x_test, y_test, label_map
 
