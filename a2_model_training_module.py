@@ -399,7 +399,8 @@ class TrainingWorker(QThread):
                 early_stop,
                 reduce_lr,
                 QtBridgeCallback()
-            ]
+            ],
+            verbose=0
         )
 
         history = {
@@ -415,7 +416,7 @@ class TrainingWorker(QThread):
             Path(self.models_dir) / f"{self.model_name}.keras"
         )
 
-        y_pred_probs = model.predict(x_test)
+        y_pred_probs = model.predict(x_test, verbose=0)
         y_pred = np.argmax(y_pred_probs, axis=1)
 
         eval_metrics = evaluation(model, history, x_test, y_test)

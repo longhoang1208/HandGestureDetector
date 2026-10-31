@@ -164,3 +164,6 @@ pip install pyinstaller
 ```bash
 pyinstaller A_main.py --name HandGestureDetector --windowed --onedir --collect-all mediapipe --collect-all tensorflow --collect-all piper --add-data "voices;voices"
 ```
+
+#### Setup môi trường
+Lưu thư mục `labels` và `models` vào cùng thư mục với `HandGestureDetector.exe`
